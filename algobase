@@ -1,0 +1,776 @@
+/* This is a C++17 file.
+ * Author Liao
+ */
+#include <chrono>
+#include <vector>
+#include <random>
+
+// quick sort
+template<typename _T> void quick_sort(_T &seq_val, uint64_t begin, uint64_t end, bool asc = true)
+{
+    auto node = begin;
+    for(auto i=begin; i<=end; i++)
+    {
+        if(i>node && ((seq_val[node]>seq_val[i] && asc)||(!asc&&seq_val[i]>seq_val[node])))
+        {
+            auto temp = seq_val[i];
+            for(auto j=i; j>node; j--) seq_val[j] = seq_val[j-1];
+            seq_val[node] = temp;
+            node ++;
+        }
+        if(node>i && ((seq_val[node]>seq_val[i]&&!asc)||(seq_val[i]>seq_val[node]&&asc)))
+        {
+            auto temp = seq_val[i];
+            for(auto j=i; j<node; j++) seq_val[j] = seq_val[j+1];
+            seq_val[node] = temp;
+            node --;
+        }
+    }
+    if(node != end)quick_sort(seq_val, begin, node, asc);
+    if(node != begin)quick_sort(seq_val, node, end, asc);
+}
+
+template<class _Ty> class algo_queue
+{
+private:
+    std::unique_ptr<_Ty[]> p_val;
+    uint64_t size_cnt = 0;
+    std::unique_ptr<_Ty[]> p_copy(std::unique_ptr<_Ty[]> &cpy, uint64_t len, bool delete_src_ptr = false)
+    {
+        std::unique_ptr<_Ty[]> p_cpy = std::make_unique<_Ty[]>(len);
+        for(auto i=0; i<len; i++) p_cpy[i] = cpy[i];
+        if(delete_src_ptr)
+        {
+            cpy.reset();
+            cpy.release();
+        }
+        return p_cpy;
+    }
+    void p_move_val(std::unique_ptr<_Ty[]> &dest, std::unique_ptr<_Ty[]> &src, uint64_t src_len)
+    {
+        for(auto i=0; i<src_len; i++) dest[i] = src[i];
+    }
+public:
+    void init(uint64_t _size = 1)
+    {
+        size_cnt = _size;
+        p_val = std::make_unique<_Ty[]>(_size);
+    }
+    algo_queue(){}
+    algo_queue(uint64_t _size)
+    {
+        if(_size) init(_size);
+    }
+    algo_queue(algo_queue &cpy_val)
+    {
+        clear();
+        init(cpy_val.size_cnt);
+        p_move_val(p_val, cpy_val.p_val, size_cnt);
+    }
+    uint64_t size()
+    {
+        return size_cnt;
+    }
+    void emplace_back(_Ty &&back_val)
+    {
+        if(size_cnt)
+        {
+            auto p_tool = p_copy(p_val, size_cnt, true);
+            init(++size_cnt);
+            p_move_val(p_val, p_tool, size_cnt - 1);
+            p_val[size_cnt-1] = back_val;
+        }
+        else
+        {
+            init();
+            p_val[0] = back_val;
+        }
+    }
+    void emplace_back(_Ty &back_val)
+    {
+        emplace_back(std::move(back_val));
+    }
+    auto pop_back()
+    {
+        if(size_cnt)
+        {
+            auto back_val = p_val[size_cnt];
+            size_cnt --;
+            if(size_cnt)
+            {
+                auto p_tool = p_copy(p_val, size_cnt, true);
+                init(size_cnt);
+                p_move_val(p_val, p_tool, size_cnt);
+                p_tool.reset();
+                p_tool.release();
+            }
+            else clear();
+            return back_val;
+        }
+        else return NULL;
+    }
+    void reverse()
+    {
+        for(auto i=0,j=size_cnt-1; i<j; i++,j--) std::swap(p_val[i], p_val[j]);
+    }
+    bool insert(uint64_t pos, _Ty &val)
+    {
+        if(pos > size_cnt) return false;
+        else
+        {
+            if(size_cnt)
+            {
+                size_cnt ++;
+                auto pb_val = p_copy(p_val, size_cnt-1, true);
+                init(size_cnt);
+                for(auto i=0; i<size_cnt; i++)
+                    if(i < pos) p_val[i] = pb_val[i];
+                    else if(i == pos) continue;
+                    else p_val[i] = pb_val[i - 1];
+                pb_val.reset();
+                pb_val.release();
+            }
+            else init();
+            p_val[pos] = val;
+            return true;
+        }
+    }
+    bool erase(uint64_t pos, _Ty &val)
+    {
+        if(pos > size_cnt) return false;
+        else
+        {
+            val = p_val[pos];
+            size_cnt --;
+            if(size_cnt)
+            {
+                for(auto i=pos; pos<size_cnt; i++) p_val[i] = p_val[i+1];
+                auto p_tool = p_copy(p_val, size_cnt, true);
+                init(size_cnt);
+                p_move_val(p_val, p_tool, size_cnt);
+                p_tool.reset();
+                p_tool.release();
+            }
+            else clear();
+            return true;
+        }
+    }
+    _Ty &operator[](uint64_t pos)
+    {
+        if(pos < size_cnt) return p_val[pos];
+        else return p_val[0];
+    }
+    algo_queue operator=(algo_queue<_Ty> &_val)
+    {
+        clear();
+        init(_val.size_cnt);
+        p_move_val(p_val, _val.p_val, size_cnt);
+        return *this;
+    }
+    bool operator==(algo_queue &_val)
+    {
+        if(size_cnt == _val.size_cnt)
+        {
+            for(auto i=0; i<size_cnt; i++)
+                if(p_val[i] == _val.p_val[i]) continue;
+                else return false;
+            return true;
+        }
+        else return false;
+    }
+    bool operator!=(algo_queue<_Ty> &_val)
+    {
+        return !(*this == _val);
+    }
+    friend std::ostream &operator<<(std::ostream &output, const algo_queue &out_val)
+    {
+        for(auto i=0; i<out_val.size_cnt; i++)
+        {
+            output << '[' << i << "][" << out_val.p_val[i] << "]";
+            if(i + 1 < out_val.size_cnt) output<< std::endl;
+        }
+        return output;
+    }
+    void sort(bool asc = true)
+    {
+        quick_sort(p_val, 0, size_cnt - 1, asc);
+    }
+    algo_queue unit(algo_queue &val)
+    {
+        if(size_cnt && val.size_cnt)
+        {
+            auto p_tool = p_copy(p_val, size_cnt, true);
+            init(size_cnt + val.size_cnt);
+            p_move_val(p_val, p_tool, size_cnt);
+            p_tool.reset();
+            p_tool.release();
+            for(auto i=0; i<val.size_cnt; i++) p_val[i+size_cnt] = val.p_val[i];
+            size_cnt += val.size_cnt;
+        }
+        if(size_cnt == 0)
+        {
+            init(val.size_cnt);
+            p_move_val(p_val, val.p_val, size_cnt);
+        }
+        return *this;
+    }
+    static algo_queue unit(algo_queue &l_val, algo_queue &r_val)
+    {
+        auto temp_l = l_val;
+        temp_l.unit(r_val);
+        return temp_l;
+    }
+    void clear()
+    {
+        size_cnt = 0;
+        p_val.reset();
+        p_val.release();
+    }
+    ~algo_queue()
+    {
+        clear();
+    }
+};
+
+// unique_ptr
+template<class _Ty> struct block_ptr
+{
+    std::unique_ptr<_Ty> u_ptr;
+    int size = 0;
+    block_ptr(){}
+    block_ptr(block_ptr &move_val) : size(move_val.size)
+    {
+        u_ptr = std::move(move_val.u_ptr);
+    }
+    block_ptr(int size)
+    {
+        init(size);
+    }
+    void init(int size)
+    {
+        u_ptr = std::make_unique<_Ty>(size);
+        this->size = size;
+    }
+    void operator=(block_ptr &move_val)
+    {
+        size = move_val.size;
+        u_ptr = std::move(move_val.u_ptr);
+    }
+    void clear()
+    {
+        size = 0;
+        u_ptr.reset();
+    }
+    ~block_ptr()
+    {
+        clear();
+        u_ptr.~unique_ptr();
+    }
+};
+/* Get absolute value.
+ * - Parameter
+ * value    [Input] Operated value  -
+ * - Return
+ * Absoluted value 
+ */
+double absolute_value(double value)
+{
+    if (value < 0) value *= (-1.0);
+    return value;
+}
+/* Get absolute value.
+ * - Parameter
+ * array    [Input] Operated array  -
+ * length   [Input] Array's length  -
+ * - Return
+ * Absoluted array
+ */
+std::unique_ptr<double[]> absolute_value(std::unique_ptr<double[]> &array, int length)
+{
+    auto abs = std::make_unique<double[]>(length);
+    for (int i = 0; i < length; i++)
+        if (array[i] < 0) abs[i] = array[i] * (-1.0);
+        else abs[i] = array[i];
+    return abs;
+}
+/* Error validation
+ * - Parameter
+ * err  [Input] Error   -
+ * - Return
+ * [true]   Error is valid
+ * [false]  Error is invalid
+ */ 
+bool err_valid(double err)
+{
+    while(err < 1) err *= 10;
+    return err == 1;
+}
+/* Get random seed
+ * - Parameter
+ * seed [Input] Chronological seed  -
+ * err  [Input] Error               0.00001
+ * -Return
+ * Random seed number
+ */
+double get_rand_base(long long seed, double err = 1e-5)
+{
+    if(err_valid(err))
+    {
+        uint64_t expon = 10;
+        while(expon * err < 1) expon *= 10;
+        auto base = seed % expon;
+        return base * err;
+    }
+    else return 0;
+}
+/* Get a pseudo random number by range
+ * - Parameter
+ * head [Input] First range     -
+ * rear [Input] Second range    -
+ * err  [Input] Error           0.00005
+ * - Return
+ * A pseudo random number
+ */
+double random_number(double head, double rear, double err = 1e-5){
+    if(head == rear) return rear;
+    else if(err_valid(err))
+    {
+        long long raw_pt = std::chrono::system_clock::now().time_since_epoch().count();
+        // _sleep(1);
+        auto seed_pt = get_rand_base(raw_pt, err);
+        return (head<rear) ? (seed_pt*(rear-head)+head) : ((seed_pt*(head-rear))+rear);
+    }
+    else return 0;
+}
+// Bit sequence
+uint64_t swap_endian(uint64_t val)
+{
+	val = ((val << 8) & 0xFF00FF00) | ((val >> 8) & 0xFF00FF);
+	return (val << 16) | (val >> 16);
+}
+// Intersection
+template<typename elem> algo_queue<elem> intersect_vec(algo_queue<elem> &head, algo_queue<elem> &tail)
+{
+    for(auto i=0; i<head.size(); i++)
+        for(auto j=0; j<head.size(); j++)
+            if(head[i] == tail[j])
+            {
+                elem temp;
+                tail.erase(j, temp);
+                break;
+            }
+    head.unit(tail);
+    return head;
+}
+// union
+template<typename elem>algo_queue<elem> unit_vec(algo_queue<elem> &head, algo_queue<elem> &tail)
+{
+    algo_queue<elem> intrsect_q;
+    for(auto i=0; i<head.size(); i++)
+        for(auto j=0; j<head.size(); j++)
+            if(head[i] == tail[j])
+            {
+                elem temp;
+                tail.erase(j, temp);
+                intrsect_q.emplace_back(temp);
+                break;
+            }
+    return head;
+}
+/* Get prime number vector
+ * - Parameter
+ * upper    [Quote] Upper boundary  -
+ * - Return
+ * Prime numbers vector
+ */
+algo_queue<uint64_t> prime_vec(uint64_t upper)
+{
+    algo_queue<uint64_t> p_v;
+    p_v.emplace_back(2);
+    if(upper > 2)
+    {
+        for(uint64_t i=3; i<=upper; i++)
+        {
+            for(auto j=0; j<p_v.size(); j++)
+            {
+                auto temp = p_v[j];
+                if(i % temp) break;
+            }
+            p_v.emplace_back(i);
+        }
+    }
+    return p_v;
+}
+/* Get positive integer's prime factorized list
+ * - Parameter
+ * val  [Input] Operation value -
+ * - Return
+ * Factorized list filled with prime
+ */
+algo_queue<uint64_t> prime_fact(uint64_t val)
+{
+    algo_queue<uint64_t> fact_vec;
+    if(val > 1)
+    {
+        auto p_v = prime_vec(val);
+        auto cnt = 0;
+        while(val != 1)
+        {
+            auto elem_t = p_v[cnt];
+            if(val%(elem_t)) cnt ++;
+            else
+            {
+                fact_vec.emplace_back(elem_t);
+                val /= elem_t;
+            }
+        }
+    }
+    return fact_vec;
+}
+/* Get min public multiplier of a couple number
+ * - Parameter
+ * l_val    [Input] One of the couple       -
+ * r_val    [Input] The other of the couple -
+ * - Return
+ * Min public multiplier
+ */
+uint64_t min_mult(uint64_t l_val, uint64_t r_val)
+{
+    if(l_val == r_val) return 1;
+    else if(l_val>r_val && l_val%r_val==0) return l_val;
+    else if(l_val<r_val && r_val%l_val==0) return r_val;
+    else
+    {
+        auto l_p_vec = prime_fact(l_val);
+        auto r_p_vec = prime_fact(r_val);
+        auto m_p_vec = unit_vec(l_p_vec, r_p_vec);
+        auto mult = 1;
+        for(auto i=0; i<m_p_vec.size(); i++) mult *= m_p_vec[i];
+        return mult;
+    }
+}
+/* Get max public factor of a couple number
+ * - Parameter
+ * l_val    [Input] One of the couple       -
+ * r_val    [Input] The other of the couple -
+ * - Return
+ * Max public factor
+ */
+uint64_t max_fact(uint64_t l_val, uint64_t r_val)
+{
+    if(l_val == r_val) return l_val;
+    else if(l_val>r_val && l_val%r_val==0) return r_val;
+    else if(l_val<r_val && r_val%l_val==0) return l_val;
+    else
+    {
+        auto l_p_vec = prime_fact(l_val);
+        auto r_p_vec = prime_fact(r_val);
+        auto m_p_vec = intersect_vec(l_p_vec, r_p_vec);
+        auto fact = 1;
+        if(m_p_vec.size())
+        {
+            for(auto i=0; i<m_p_vec.size(); i++) fact *= m_p_vec[i];
+            return fact;
+        }
+        else return 1;
+    }
+}
+/* Scientific counting method, divide a decimal less than 1 and bigger than 0 into integer part and reduced multiplier.
+ * - Parameter
+ * dec_part [Input] A decimal whose absoluted value less than 1 and bigger than 0   -
+ * - Return
+ * The counting pair
+ * [first]  Counting integer
+ * [second] Reduced multiplier by 10
+ */
+std::pair<uint64_t, uint64_t> sci_num(double dec_part)
+{
+    dec_part = absolute_value(dec_part);
+    if(dec_part > 1) return std::make_pair(0, 0);
+    else
+    {
+        auto sum = 0, expon = 1, i_temp = 0;
+        do
+        {
+            auto d_temp = (float)dec_part;
+            i_temp = (int)(d_temp * 10);
+            dec_part *= 10;
+            dec_part -= i_temp;
+            expon *= 10;
+            sum *= 10;
+            sum += i_temp;
+        } while (i_temp != 0);
+        return std::make_pair(sum/10, expon/10);
+    }
+}
+/* Power calculation
+ * - Parameter
+ * base     [Input] Base number -
+ * times    [Input] Exponent    -
+ * - Return
+ * Power calculation answer
+ */
+int power(int base, int times){
+    int ans = 1;
+    while(times){
+        if(times&1)        
+            ans *= base;  
+        base *= base;       
+        times >>= 1;       
+    }
+    return ans;
+}
+double power(double num, int times)
+{
+    if(times == 0) return 1.0;
+    else if(times == 1) return num;
+    else
+    {
+        double ans = num;
+        auto cnt = 2;
+        for(cnt=2; cnt<times; cnt*=2) ans *= ans;
+        auto _more = cnt - times, _less = times - cnt / 2;
+        if(_less < _more) for(auto i=0; i<_less; i++) ans *= num;
+        else
+        {
+            ans *= ans;
+            for(auto i=0; i<_more; i++) ans /= num;
+        }
+        return ans;
+    }
+}
+/* Root calculation
+ * - Parameter
+ * real     [Quote] Real number -
+ * expon    [Quote] Exponent    -
+ * err      [Input] Error       0.1
+ * - Return
+ * Root answer
+ */
+double dim_root(double real, int expon, double err = 1e-5)
+{
+    if(real)
+    {
+        double pre = 1.0, nex = 1.0;
+        do
+        {
+            pre = nex;
+            nex = (expon - 1.0) * nex / expon + real / (expon * power(nex, expon-1));
+        } while (absolute_value(pre-nex) > err);
+        return nex;
+    }
+    else return 0;
+}
+double power(double base, double expon, double err = 1e-5)
+{
+    bool ngt_flag = false;
+    if(expon < 0)
+    {
+        expon = absolute_value(expon);
+        ngt_flag = true;
+    }
+    if(expon == 0) return 1;
+    else if(expon == 1) return base;
+    else
+    {
+        auto i_exp = (int)expon;
+        auto d_exp = expon - i_exp;
+        auto ans = power(base, i_exp);
+        auto dec_pair = sci_num(d_exp);
+        auto fact = max_fact(dec_pair.first, dec_pair.second);
+        // Cancel the common factors
+        auto i_dec = dec_pair.first/fact;
+        auto d_dec = dec_pair.second/fact;
+        if(d_dec%2==0 && base<0) return 0;
+        else
+        {
+            if(i_dec != 1) ans *= power(base, (int)(i_dec));
+            ans *= dim_root(base, (int)(d_dec), err);
+            if(ngt_flag) ans = 1.0 / ans;
+            return ans;
+        }
+    }
+}
+/* Swap two same type value. If the operated value is a quoted variable, it should contain a (lambda) compared function.
+ * - Parameter
+ * left     [Quote] Left value  -
+ * right    [Quote] Right value -
+ * - Return
+ * void
+ */
+template <typename swap_var> void swap_value(swap_var &left, swap_var &right)
+{
+    auto cntr = left;
+    left = right;
+    right = cntr;
+}
+// Need a resource string and calculate its length then return length with a integer. 
+int string_length(char *str){
+    int length = 0;
+    while(str [length++]);
+    return --length;
+}
+// Need two resource strings and compare their each element. If they are the same one return true, false conversely.
+bool string_compare(char *prior_str, char *next_str){
+    int i = 0, j = 0;
+    int la = string_length(prior_str);
+    int lb = string_length(next_str);
+    if(la == lb){
+        while(i<la || j<lb){
+            if(prior_str[i] == next_str[j]){
+                i ++; j ++;
+            }else return false;
+        }return true;
+    }else return false;
+}
+// Need two resource strings, one of them is target string and the other is the source string. If copy successfully return true, false conversely. 
+bool string_copy(char *dest_str, char *src_str){
+    int l = string_length(src_str), i = 0;
+    for(i=0; i<l; i++)dest_str[i] = src_str[i]; dest_str[i] = '\0';
+    if(string_compare(dest_str,src_str))return 1;
+    else return 0;
+}
+// This function would return a string which contains input stream.
+std::string paraInput(uint64_t buffer_length = 2000){
+    fflush(stdin);
+    std::cout << "Please end submit with double enter." << std::endl;
+    std::cout << std::endl; 
+    auto cmtr = std::make_unique<char[]>(buffer_length);
+    int i = 0;
+    char temp, enter; 
+    while(i < buffer_length){
+        temp = getchar();
+        if(temp == '\n'){
+            enter = getchar();
+            if(enter == '\n') break;
+            else {
+                cmtr[i] = '\n';
+                cmtr[++i] = enter;
+            }
+        }else cmtr[i] = temp; i ++;
+    }cmtr[i] = '\0';
+    auto len = i + 1;
+    std::string init_str = "";
+    for(i=0; i<len; i++) init_str += cmtr[i];
+    fflush(stdin);
+    return init_str;
+}
+// Need a string which contain a formative Matrix::matrix. This function will return a sequence array which contains whole elements of Matrix::matrix.
+std::unique_ptr<double[]> extract_number(std::string num_str){
+    int i = 0, cnt = 0, len = num_str.length(), amt = 0;
+    // get the amount of the number from string
+    while(i < len){
+        if(num_str[i]=='.' || num_str[i]=='-' || num_str[i]=='+' || (num_str[i]>='0' && num_str[i]<='9'))
+            if(i == 0 || num_str[i-1]==' '|| num_str[i-1]=='\t' || num_str[i-1]=='\n') cnt ++;
+        i ++;
+    } std::unique_ptr<double[]>num_seq = std::make_unique<double[]>(cnt);
+    amt = cnt;
+    cnt = 0;
+    for(int j=0; j<amt; j++){
+        num_seq[j] = 0.0;
+    } i = 0;
+    while(i < len){
+        double temp = 0.0, div = 0.0, dec = 0.0;
+        bool neg = false, di = false;
+        /*
+        When iterate to a new number, go into the loop
+        */
+        if(num_str[i]=='.' || num_str[i]=='-' || num_str[i]=='+' || (num_str[i]>='0' && num_str[i]<='9')){
+            // looping when meet a punctuated symbol
+            bool de = false;
+            int de_num = 0;
+            while(num_str[i]!=' ' && num_str[i]!='\t' && num_str[i]!='\n' && num_str[i]!='\0'){
+                if(num_str[i] == '-'){
+                    // when meet a negative symbol sign convert to true
+                    neg = true;
+                }if(num_str[i]>='0' && num_str[i]<='9'){
+                    // if meet decimal sign is true
+                    if(de){
+                        dec += (num_str[i]-'0')*1.0/power(10, de_num);
+                        de_num ++;
+                    }else{
+                        // if the fractional sign is true
+                        if(di) div = div*10.0+(num_str[i]-'0')*1.0;
+                        else temp = temp*10.0+(num_str[i]-'0')*1.0;
+                    }
+                }if(num_str[i] == '.'){
+                    // this one is a decimal symbol
+                    de = true;
+                    de_num ++;
+                }if(num_str[i] == '/'){
+                    // this one is a fractional symbol
+                    di = true;
+                    temp += dec;
+                    dec = 0.0;
+                    de_num = 0;
+                    de = false;
+                }i ++;
+            }if(di){
+                div += dec;
+                if(neg) div *= -1.0;
+                temp /= div;
+            }else{
+                temp += dec;
+                if(neg)temp *= -1.0;
+            }
+        } num_seq[cnt ++] = temp;
+        i ++;
+    }
+    return num_seq;
+}
+
+// Wide and single symbol exchange
+std::string charset_exchange(std::wstring str_src){
+    auto nLen = str_src.length();
+    char *psBuf = new char[nLen + 1];
+    wcstombs(psBuf, str_src.c_str(), nLen);
+    psBuf[nLen] = '\0';
+    std::string strDest(psBuf);
+    delete []psBuf;
+    psBuf = nullptr;
+    if(strDest.length() == nLen) return strDest;
+    else return "";
+}
+std::wstring charset_exchange(std::string str_src){
+    // setlocale(LC_ALL, "zh_CN.UTF-8");
+    auto nLen = str_src.length();
+    wchar_t *pwsBuf = new wchar_t[nLen + 1];
+    mbstowcs(pwsBuf, str_src.c_str(), nLen);
+    pwsBuf[nLen] = L'\0';
+    std::wstring wstrDest(pwsBuf);
+    delete []pwsBuf;
+    pwsBuf = nullptr;
+    if(wstrDest.length() == nLen) return wstrDest;
+    else return L"";
+}
+
+/* Delete a string
+ * - parameter -
+ * string_src   [Input] String source   -
+ * - Return - 
+ * void
+ */
+void delete_string(char *string_src)
+{
+    delete [] string_src;
+    string_src = nullptr;
+}
+
+// Reload
+void reload(char *ch_seq, uint64_t len)
+{
+    for(auto i=0; i<len ; i++) ch_seq[i] = 0;
+}
+
+// vector reverse
+template<typename vec_elem> void stl_vector_reverse(std::vector<vec_elem> &val)
+{
+    for(int i=0,j=val.size()-1; i<j; i++,j--) std::swap(val[i], val[j]);
+}
+// matrix vector
+template<typename v_t> void destroy_vector(std::vector<v_t> &stl_vec)
+{
+    std::vector<v_t>().swap(stl_vec);
+}
+
+// Cluster

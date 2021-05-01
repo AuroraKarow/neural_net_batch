@@ -1,0 +1,21 @@
+{
+    // 使用 IntelliSense 了解相关属性。 
+    // 悬停以查看现有属性的描述。
+    // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "symbolsearchpath": "https://msdl.microsoft.com/download/symbols",
+    "configurations": [
+        {
+            "name": "(Windows) 启动",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "preLaunchTask": "shell: cl.exe build active file",
+            "program": "${workspaceFolder}/Debug/${fileBasenameNoExtension}.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/Debug",
+            "environment": [],
+            "console": "externalTerminal"
+        }
+    ]
+}
