@@ -2,7 +2,7 @@
  * Author Liao
  */
 #include <chrono>
-#include <vector>
+#include <map>
 #include <random>
 
 // quick sort
@@ -762,15 +762,141 @@ void reload(char *ch_seq, uint64_t len)
     for(auto i=0; i<len ; i++) ch_seq[i] = 0;
 }
 
-// vector reverse
-template<typename vec_elem> void stl_vector_reverse(std::vector<vec_elem> &val)
+/* Get next cluster iteration center
+ * lsCltr   input   -   Previous cluster value
+ */
+std::map<int64_t, std::map<std::wstring, double>> GetNextCenter(std::map<int64_t, std::map<int64_t, std::map<std::wstring, double>>> lsCltr)
 {
-    for(int i=0,j=val.size()-1; i<j; i++,j--) std::swap(val[i], val[j]);
-}
-// matrix vector
-template<typename v_t> void destroy_vector(std::vector<v_t> &stl_vec)
-{
-    std::vector<v_t>().swap(stl_vec);
+    std::map<int64_t, std::map<std::wstring, double>> mapNewCenter;
+    // initialize center
+    for(auto mapCltrTemp : lsCltr)
+    {
+        std::map<std::wstring, double> mapNewCentElem;
+        mapNewCenter.insert(std::pair<int64_t, std::map<std::wstring, double>>(mapCltrTemp.first, mapNewCentElem));
+    }
+    for(auto mapCltrTemp : lsCltr)
+    {
+        std::map<std::wstring, double> mapSum;
+        for(auto mapCltrElemTemp : mapCltrTemp.second) for(auto mapElemTemp : mapCltrElemTemp.second)
+        if(mapSum.size() == mapCltrElemTemp.second.size()) mapSum[mapElemTemp.first] += mapElemTemp.second;
+        else mapSum.insert(mapElemTemp);
+        for(auto mapSumTemp : mapSum) mapSum[mapSumTemp.first] /= mapCltrTemp.second.size();
+        mapNewCenter[mapCltrTemp.first] = mapSum;
+    }
+    return mapNewCenter;
 }
 
-// Cluster
+/* Get Euclid distance's square value
+ * mapFirst/Second  input - Two cluster's element
+ */
+double GetEuclidDistPow(std::map<std::wstring, double> mapFirst, std::map<std::wstring, double> mapSecond)
+{
+    double dESum = 0;
+    for(auto mapTemp : mapFirst) dESum += pow(mapTemp.second-mapSecond[mapTemp.first], 2);
+    return dESum;
+}
+
+/* Get standard eigen function value
+ * lsCltr   input   -   Current iteration cluster
+ */
+double GetStdEVal(std::map<int64_t, std::map<int64_t, std::map<std::wstring, double>>> lsCltr)
+{
+    // Next center
+    auto mapNextCent = GetNextCenter(lsCltr);
+    double dStdEVal = 0;
+    // eigenvalue
+    for(int64_t i=0; i<lsCltr.size(); i++)
+    {
+        double dStadEValElem = 0;
+        for(auto lsTemp : lsCltr[i])
+            dStadEValElem += GetEuclidDistPow(lsTemp.second, mapNextCent[i]);
+        dStdEVal += dStadEValElem;
+    }
+    return dStdEVal;
+}
+
+/* Get next iteration
+ * lsCltr   input   -   Current iteration cluster
+ */
+std::map<int64_t, std::map<int64_t, std::map<std::wstring, double>>> GetNextCluster(std::map<int64_t, std::map<int64_t, std::map<std::wstring, double>>> lsCltr)
+{
+    auto mapNextCent = GetNextCenter(lsCltr);
+    std::map<int64_t, std::map<int64_t, std::map<std::wstring, double>>> mapNextCltr;
+    // Initialize new center
+    for(auto mapNewCentTemp : mapNextCent)
+    {
+        std::map<int64_t, std::map<std::wstring, double>> lsSgcltr;
+        mapNextCltr.insert(std::pair<int64_t, std::map<int64_t, std::map<std::wstring, double>>>(mapNewCentTemp.first, lsSgcltr));
+    }
+    for(auto mapTemp : lsCltr) for(auto lsTemp : mapTemp.second)
+    {
+        auto nCtrlNo = mapNextCent.begin()->first;
+        // Euclid distance
+        auto dMinEDist = GetEuclidDistPow(lsTemp.second, mapNextCent.begin()->second);
+        for(auto mapElemTemp : mapNextCent)
+        {
+            auto dCurMinDist = GetEuclidDistPow(lsTemp.second, mapElemTemp.second);
+            // Distribution to each center
+            if(dCurMinDist < dMinEDist)
+            {
+                dMinEDist = dCurMinDist;
+                nCtrlNo = mapElemTemp.first;
+            }
+        }
+        mapNextCltr[nCtrlNo].insert(lsTemp);
+    }
+    return mapNextCltr;
+}
+
+/* Core function
+ * mapDataSrc   input   -       Data source
+ * mapCltrCent  refer   -       Initial cluster center
+ * nCltrCentNum input   3       Amount of cluster
+ * accuracy     input   1e-5    Calculation accuracy
+ */
+std::map<int64_t, std::map<int64_t, std::map<std::wstring, double>>> GetCluster(std::map<int64_t, std::map<std::wstring, double>> mapDataSrc, std::map<int64_t, std::map<std::wstring, double>> &mapCltrCent, int64_t nCltrCentNum = 3, double accuracy = 1e-5)
+{
+    std::map<int64_t, std::map<int64_t, std::map<std::wstring, double>>> mapCltr;
+    for(int64_t i=0; i<nCltrCentNum; i++)
+    {
+        std::map<int64_t, std::map<std::wstring, double>> mapCltrElem;
+        mapCltr.insert(std::pair<int64_t, std::map<int64_t, std::map<std::wstring, double>>>(i, mapCltrElem));
+    }
+    // Initial distribution
+    int64_t nInitCnt = 0;
+    for(auto mapDataTemp : mapDataSrc)
+    {
+        mapCltr[nInitCnt].insert(mapDataTemp);
+        if(nInitCnt + 1 != nCltrCentNum) nInitCnt ++;
+    }
+    // Initial equivalent value
+    auto dPriorEVal = GetStdEVal(mapCltr);
+    bool bIter = true;
+    do
+    {
+        mapCltrCent = GetNextCenter(mapCltr);
+        // Nect cluster
+        mapCltr = GetNextCluster(mapCltr);
+        auto dNextEVal = GetStdEVal(mapCltr);
+        if(abs(dNextEVal-dPriorEVal) < accuracy) bIter = false;
+        dPriorEVal = dNextEVal;
+    }
+    while(bIter);
+    return mapCltr;
+}
+
+/* Get 2D discrete graph position
+ * lsCltr       input   -   Current cluster
+ * lsCltrCent   input   -   Current cluster center
+ */
+std::map<int64_t, std::pair<double, double>> GetClusterGraphLoc(std::map<int64_t, std::map<int64_t, std::map<std::wstring, double>>> lsCltr, std::map<int64_t, std::map<std::wstring, double>> lsCltrCent)
+{
+    std::map<int64_t, std::pair<double, double>> mapLoc;
+    for(int64_t i=0; i<lsCltr.size(); i++) for(auto mapTemp : lsCltr[i])
+    {
+        auto dEucY = GetEuclidDistPow(lsCltrCent[i], mapTemp.second);
+        auto dEucX = pow(dEucY, 0.5);
+        mapLoc.insert(std::pair<int64_t, std::pair<double, double>>(mapTemp.first, std::pair<double, double>(dEucX, dEucY)));
+    }
+    return mapLoc;
+}
