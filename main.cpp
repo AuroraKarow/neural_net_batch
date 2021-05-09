@@ -61,7 +61,7 @@ int main(int argc, char *argv[], char *envp[])
 
     bool flag = true;
     auto cnt = 0;
-    double learn_rate = 0.03;
+    double learn_rate = 0.01;
     double ss_rate = 1e-6;
     do
     {
@@ -91,7 +91,6 @@ int main(int argc, char *argv[], char *envp[])
         // fc 1
         auto output = GaussConnForwProp(fc_act, weight_1);
 
-        cout << "[Round]" << cnt ++ << endl;
         for(auto i=0; i<output.size(); i++)
         {
             cout << "[Output]\t[Origin][Note]" << endl;
@@ -101,7 +100,8 @@ int main(int argc, char *argv[], char *envp[])
                 cout << batOrigin[i][j][0] << '\t' << j << endl;
             }
         }
-        flag = !IsTrained(output, batOrigin, 0.2);
+        cout << "[Round]" << cnt ++ << endl;
+        flag = !IsTrained(output, batOrigin, 0.1);
 
         if(flag)
         {

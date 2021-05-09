@@ -547,5 +547,33 @@ void UpdateScaleShift(algo_queue<double> &batPreScaleShift, algo_queue<double> &
 {
     for(auto i=0; i<batPreScaleShift.size(); i++) batPreScaleShift[i] -= batPreScaleShift[i] * dLearnRate;
 }
+algo_queue<algo_queue<algo_queue<Matrix::matrix>>> DeconvForwProp(algo_queue<algo_queue<Matrix::matrix>> &vecInput,algo_queue<algo_queue<Matrix::matrix>>& vecKernel, uint64_t nStride)
+{
+    algo_queue<algo_queue<algo_queue<Matrix::matrix>>> batOutput(vecInput.size());
+    for(auto i=0; i<batOutput.size(); i++) batOutput[i] = neunet::DeconvForwProp(vecInput[i], vecKernel, nStride);
+    return batOutput;
+}
+algo_queue<algo_queue<Matrix::matrix>> DeconvPreErr(algo_queue<algo_queue<Matrix::matrix>> &vecCurrErr, algo_queue<algo_queue<Matrix::matrix>> &vecKernel, uint64_t nStride)
+{
+    algo_queue<algo_queue<Matrix::matrix>> batPreErr(vecCurrErr.size());
+    for(auto i=0; i<vecCurrErr.size(); i++) batPreErr[i] = neunet::DeconvPreErr(vecCurrErr[i], vecKernel, nStride);
+    return batPreErr;
+}
+algo_queue<algo_queue<Matrix::matrix>> DeconvKernelGrad(algo_queue<algo_queue<Matrix::matrix>> &vecCurrErr, algo_queue<algo_queue<Matrix::matrix>> &vecInput, algo_queue<algo_queue<Matrix::matrix>>& vecKernel, uint64_t nStride)
+{
+    algo_queue<algo_queue<Matrix::matrix>> batGradKernel(vecKernel.size());
+    for(auto i=0; i<vecKernel.size(); i++)
+    {
+        batGradKernel[i].init(vecKernel[i].size());
+        for(auto j=0; j<vecKernel[i].size(); j++)
+        {
+            Matrix::matrix vecSglGrad(vecKernel[i][j].get_line(), vecKernel[i][j].get_column());
+            for(auto k=0; k<vecCurrErr.size(); k++) vecSglGrad += neunet::DeconvKernelGrad(vecInput[k][j], vecKernel[i][j], nStride, vecCurrErr[k][j]);
+            batGradKernel[i][j] = vecSglGrad;
+        }
+    }
+    return batGradKernel;
+}
+
 // namespace end
 BATNET_END

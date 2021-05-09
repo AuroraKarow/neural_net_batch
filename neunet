@@ -440,6 +440,62 @@ Matrix::matrix ConvBiasGrad(algo_queue<Matrix::matrix> &vecCurrErr)
         }
     return vecConvBiasGrad;
 }
+Matrix::matrix DeconvForwProp(Matrix::matrix &vecInput, Matrix::matrix &vecKernel, uint64_t nStride)
+{
+    auto vecPadInput = Matrix::matrix::padding(vecInput, vecKernel.get_line()-1, vecKernel.get_column()-1, nStride-1, nStride-1);
+    auto vecConvPadInput = GetConvVec(vecPadInput, vecKernel.get_line(), vecKernel.get_column(), nStride, nStride);
+    auto vecConvKernel = GetConvVec(vecKernel);
+    auto vecConvOutput = vecConvPadInput.first * vecConvKernel;
+    auto vecOutput = GetConvOutputOriginVec(vecConvOutput, vecPadInput.get_line(), vecPadInput.get_column(), vecKernel.get_line(), vecKernel.get_column(), 1, 1);
+    return vecOutput;
+}
+algo_queue<algo_queue<Matrix::matrix>> DeconvForwProp(algo_queue<Matrix::matrix> &vecInput, algo_queue<algo_queue<Matrix::matrix>> &vecKernel, uint64_t nStride)
+{
+    algo_queue<algo_queue<Matrix::matrix>> vecOutput(vecKernel.size());
+    for(auto i=0; i<vecKernel.size(); i++)
+    {
+        vecOutput[i].init(vecInput.size());
+        for(auto j=0; j<vecInput.size(); j++) vecOutput[i][j] = DeconvForwProp(vecInput[j], vecKernel[i][j], nStride);
+    }
+    return vecOutput;
+}
+Matrix::matrix DeconvPreErr(Matrix::matrix &vecCurrErr, Matrix::matrix &vecKernel, uint64_t nStride)
+{
+    auto vecPadPreErr = ConvPreErr(vecCurrErr, vecKernel, nStride);
+    auto nLnBegin = vecKernel.get_line() - 1, nColBegin = vecKernel.get_column() - 1;
+    auto nItrStride = nStride - 1;
+    auto nOriginPreErrLnCnt = (vecPadPreErr.get_line() - 2 * vecKernel.get_line() + 3) / 2;
+    auto nOriginPreErrColCnt = (vecPadPreErr.get_column() - 2 * vecKernel.get_column() + 3) / 2;
+    Matrix::matrix vecPreErr(nOriginPreErrLnCnt, nOriginPreErrColCnt);
+    for(auto i=0; i<vecPreErr.get_line(); i++)
+        for(auto j=0; j<vecPreErr.get_column(); j++) vecPreErr[i][j] = vecCurrErr[nLnBegin+i*nItrStride][nColBegin+j*nItrStride];
+    return vecPreErr;
+}
+algo_queue<Matrix::matrix> DeconvPreErr(algo_queue<Matrix::matrix> &vecCurrErr, algo_queue<algo_queue<Matrix::matrix>> &vecKernel, uint64_t nStride)
+{
+    auto nChannCnt = vecKernel[0].size();
+    algo_queue<Matrix::matrix> vecPreErr(nChannCnt);
+    for(auto i=0; i<nChannCnt; i++)
+    {
+        Matrix::matrix vecSglChannErr;
+        for(auto j=0; j<vecKernel.size(); j++)
+        {
+            auto vecSglErr = DeconvPreErr(vecCurrErr[j], vecKernel[j][i], nStride);
+            if(vecSglChannErr.is_matrix()) vecSglChannErr += vecSglErr;
+            else vecSglChannErr = vecSglErr;
+        }
+        vecPreErr[i] = vecSglChannErr;
+    }
+    return vecPreErr;
+}
+Matrix::matrix DeconvKernelGrad(Matrix::matrix &vecInput, Matrix::matrix &vecKernel, uint64_t nStride, Matrix::matrix &vecCurrErr)
+{
+    auto vecPadInput = Matrix::matrix::padding(vecInput, vecKernel.get_line()-1, vecKernel.get_column()-1, nStride-1, nStride-1); 
+    auto vecConvPadInput = GetConvVec(vecPadInput, vecKernel.get_line(), vecKernel.get_column(), nStride, nStride);
+    auto vecConvCurrErr = GetConvVec(vecCurrErr);
+    auto vecConvGradKernel = vecConvPadInput.first * vecConvCurrErr;
+    return GetConvOutputOriginVec(vecConvGradKernel, vecPadInput.get_line(), vecPadInput.get_column(), vecCurrErr.get_line(), vecCurrErr.get_column(), 1, 1);
+}
 /* Recycle Neural Network(RNN) definition
  * Step 1 - Recycle forward propagation
  * Step 2 - Back propagation 
