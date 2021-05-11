@@ -496,6 +496,44 @@ Matrix::matrix DeconvKernelGrad(Matrix::matrix &vecInput, Matrix::matrix &vecKer
     auto vecConvGradKernel = vecConvPadInput.first * vecConvCurrErr;
     return GetConvOutputOriginVec(vecConvGradKernel, vecPadInput.get_line(), vecPadInput.get_column(), vecCurrErr.get_line(), vecCurrErr.get_column(), 1, 1);
 }
+Matrix::matrix SlidePercieve(Matrix::matrix &vecInput, uint64_t nSlide = 1)
+{
+    if(vecInput.get_line() == vecInput.get_column()) return vecInput;
+    else
+    {
+        auto nLongSide = max(vecInput.get_line(), vecInput.get_column()),
+        nShortSide = min(vecInput.get_line(), vecInput.get_column());
+        if(nSlide > nLongSide) return Matrix::matrix();
+        else
+        {
+            auto nAnotherSlide = nLongSide - nShortSide - nSlide;
+            if(vecInput.get_line() > vecInput.get_column()) return Matrix::matrix::crop(vecInput, nSlide, 0, nAnotherSlide, 0);
+            else return Matrix::matrix::crop(vecInput, 0, nAnotherSlide, 0, nSlide); 
+        }
+    }
+}
+uint64_t GradSlide(Matrix::matrix &vecCurrErr, uint64_t nSlide)
+{
+    auto nLongSide = max(vecCurrErr.get_line(), vecCurrErr.get_column()),
+        nShortSide = min(vecCurrErr.get_line(), vecCurrErr.get_column());
+    auto dSum = vecCurrErr.sum_elem();
+    if(dSum>0 || !nSlide) return 1;
+    else if(dSum<0 || nSlide<nLongSide-nShortSide) return -1;
+    else return 0;
+}
+Matrix::matrix BoolSet(Matrix::matrix &vecInput, double dThreshold)
+{
+    Matrix::matrix vecBool(vecInput.get_line(), vecInput.get_column());
+    for(auto i=0; i<vecInput.get_line(); i++)
+        for(auto j=0; j<vecInput.get_column(); j++)
+            if(vecInput[i][j] < dThreshold) vecBool[i][j] = false;
+            else vecBool[i][j] = true;
+    return vecBool;
+}
+double GradBoolSet(Matrix::matrix &vecCurrErr)
+{
+    return vecCurrErr.sum_elem();
+}
 /* Recycle Neural Network(RNN) definition
  * Step 1 - Recycle forward propagation
  * Step 2 - Back propagation 
