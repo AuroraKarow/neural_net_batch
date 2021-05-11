@@ -512,14 +512,54 @@ Matrix::matrix SlidePercieve(Matrix::matrix &vecInput, uint64_t nSlide = 1)
         }
     }
 }
-uint64_t GradSlide(Matrix::matrix &vecCurrErr, uint64_t nSlide)
+algo_queue<Matrix::matrix> SlidePercieve(algo_queue<Matrix::matrix> &vecInput, uint64_t nSlide = 1)
 {
-    auto nLongSide = max(vecCurrErr.get_line(), vecCurrErr.get_column()),
-        nShortSide = min(vecCurrErr.get_line(), vecCurrErr.get_column());
+    algo_queue<Matrix::matrix> vecPreInput(vecInput.size());
+    for(auto i=0; i<vecInput.size(); i++) vecPreInput[i] = SlidePercieve(vecInput[i], nSlide);
+}
+uint64_t GradSlide(Matrix::matrix &vecCurrErr, uint64_t nSlide, double dPreGradAlpha = 0, double dZeta = 1e-10)
+{
     auto dSum = vecCurrErr.sum_elem();
-    if(dSum>0 || !nSlide) return 1;
-    else if(dSum<0 || nSlide<nLongSide-nShortSide) return -1;
-    else return 0;
+    auto dSgn = std::ceil(dPreGradAlpha/(dPreGradAlpha+dZeta));
+    if((absolute_value(dPreGradAlpha)<absolute_value(dSum)) ||
+    !nSlide || nSlide==vecCurrErr.get_line()) return -1 * dSgn;
+    else return dSgn;
+}
+uint64_t GradSlide(algo_queue<Matrix::matrix> &vecCurrErr, uint64_t nSlide, double dPreGradAlpha = 0)
+{
+    double dSum = 0;
+    for(auto i=0; i<vecCurrErr.size(); i++) dSum += GradSlide(vecCurrErr[i], nSlide, dPreGradAlpha);
+    if(dSum >= 0.5) return 1;
+    else return -1;
+}
+Matrix::matrix ImgGray(algo_queue<Matrix::matrix> &vecInput)
+{
+    if(vecInput.size() == imgdig::RGB_CHANNEL_COUNT)
+    {
+        Matrix::matrix vecGrayImg(vecInput[0].get_line(), vecInput[0].get_column());
+        for(auto i=0; i<vecGrayImg.get_line(); i++)
+            for(auto j=0; j<vecGrayImg.get_column(); j++)
+                for(auto k=0; k<vecInput.size(); k++) vecGrayImg[i][j] += vecInput[k][i][j];
+        return vecGrayImg;
+    }
+    else return Matrix::matrix();
+}
+algo_queue<Matrix::matrix> GradImgGray(Matrix::matrix &vecCurrErr)
+{
+    auto nLnCnt = vecCurrErr.get_line(),
+        nColCnt = vecCurrErr.get_column();
+    algo_queue<Matrix::matrix> vecErr(imgdig::RGB_CHANNEL_COUNT);
+    for(auto i=0; i<nLnCnt; i++)
+        for(auto j=0; j<nColCnt; j++)
+        {
+            if(!vecErr[imgdig::R].is_matrix()) vecErr[imgdig::R] = Matrix::matrix(nLnCnt, nColCnt);
+            vecErr[imgdig::R][i][j] = imgdig::RED_GRAY_WEIGHT * vecCurrErr[i][j];
+            if(!vecErr[imgdig::G].is_matrix()) vecErr[imgdig::G] = Matrix::matrix(nLnCnt, nColCnt);
+            vecErr[imgdig::G][i][j] = imgdig::GREEN_GRAY_WEIGHT * vecCurrErr[i][j];
+            if(!vecErr[imgdig::B].is_matrix()) vecErr[imgdig::B] = Matrix::matrix(nLnCnt, nColCnt);
+            vecErr[imgdig::B][i][j] = imgdig::BLUE_GRAY_WEIGHT * vecCurrErr[i][j];
+        }
+    return vecErr;
 }
 Matrix::matrix BoolSet(Matrix::matrix &vecInput, double dThreshold)
 {

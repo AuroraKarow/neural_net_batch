@@ -18,6 +18,14 @@ const uint64_t R = 0;
 const uint64_t G = 1;
 const uint64_t B = 2;
 
+// Gray
+const double RED_GRAY_WEIGHT = 0.299;
+const double GREEN_GRAY_WEIGHT = 0.587;
+const double BLUE_GRAY_WEIGHT = 0.114;
+
+// Channel
+const uint64_t RGB_CHANNEL_COUNT = 3;
+
 // Picture
 struct ImgPx{
 	// Height and width
