@@ -440,6 +440,7 @@ Matrix::matrix ConvBiasGrad(algo_queue<Matrix::matrix> &vecCurrErr)
         }
     return vecConvBiasGrad;
 }
+// U2Net
 Matrix::matrix DeconvForwProp(Matrix::matrix &vecInput, Matrix::matrix &vecKernel, uint64_t nStride)
 {
     auto vecPadInput = Matrix::matrix::padding(vecInput, vecKernel.get_line()-1, vecKernel.get_column()-1, nStride-1, nStride-1);
@@ -496,55 +497,6 @@ Matrix::matrix DeconvKernelGrad(Matrix::matrix &vecInput, Matrix::matrix &vecKer
     auto vecConvGradKernel = vecConvPadInput.first * vecConvCurrErr;
     return GetConvOutputOriginVec(vecConvGradKernel, vecPadInput.get_line(), vecPadInput.get_column(), vecCurrErr.get_line(), vecCurrErr.get_column(), 1, 1);
 }
-Matrix::matrix SlidePercieve(Matrix::matrix &vecInput, uint64_t nSlide = 1)
-{
-    if(vecInput.get_line() == vecInput.get_column()) return vecInput;
-    else
-    {
-        auto nLongSide = max(vecInput.get_line(), vecInput.get_column()),
-        nShortSide = min(vecInput.get_line(), vecInput.get_column());
-        if(nSlide > nLongSide) return Matrix::matrix();
-        else
-        {
-            auto nAnotherSlide = nLongSide - nShortSide - nSlide;
-            if(vecInput.get_line() > vecInput.get_column()) return Matrix::matrix::crop(vecInput, nSlide, 0, nAnotherSlide, 0);
-            else return Matrix::matrix::crop(vecInput, 0, nAnotherSlide, 0, nSlide); 
-        }
-    }
-}
-algo_queue<Matrix::matrix> SlidePercieve(algo_queue<Matrix::matrix> &vecInput, uint64_t nSlide = 1)
-{
-    algo_queue<Matrix::matrix> vecPreInput(vecInput.size());
-    for(auto i=0; i<vecInput.size(); i++) vecPreInput[i] = SlidePercieve(vecInput[i], nSlide);
-}
-uint64_t GradSlide(Matrix::matrix &vecCurrErr, uint64_t nSlide, double dPreGradAlpha = 0, double dZeta = 1e-10)
-{
-    auto dSum = vecCurrErr.sum_elem();
-    auto dSgn = std::ceil(dPreGradAlpha/(dPreGradAlpha+dZeta));
-    if((absolute_value(dPreGradAlpha)<absolute_value(dSum)) ||
-    !nSlide || nSlide==vecCurrErr.get_line()) return -1 * dSgn;
-    else return dSgn;
-}
-uint64_t GradSlide(algo_queue<Matrix::matrix> &vecCurrErr, uint64_t nSlide, double dAcc, double dPreGradAlpha = 0, double dZeta = 1e-10)
-{
-    double dSum = 0;
-    for(auto i=0; i<vecCurrErr.size(); i++) dSum += GradSlide(vecCurrErr[i], nSlide, dPreGradAlpha);
-    auto nGradSlide = std::ceil(dSum/dSum+dZeta);
-    if(nGradSlide > dAcc) return nGradSlide;
-    else return 0;
-}
-Matrix::matrix ImgGray(algo_queue<Matrix::matrix> &vecInput)
-{
-    if(vecInput.size() == imgdig::RGB_CHANNEL_COUNT)
-    {
-        Matrix::matrix vecGrayImg(vecInput[0].get_line(), vecInput[0].get_column());
-        for(auto i=0; i<vecGrayImg.get_line(); i++)
-            for(auto j=0; j<vecGrayImg.get_column(); j++)
-                for(auto k=0; k<vecInput.size(); k++) vecGrayImg[i][j] += vecInput[k][i][j];
-        return vecGrayImg;
-    }
-    else return Matrix::matrix();
-}
 algo_queue<Matrix::matrix> GradImgGray(Matrix::matrix &vecCurrErr)
 {
     auto nLnCnt = vecCurrErr.get_line(),
@@ -571,9 +523,21 @@ Matrix::matrix BoolSet(Matrix::matrix &vecInput, double dThreshold)
             else vecBool[i][j] = true;
     return vecBool;
 }
-double GradBoolSet(Matrix::matrix &vecCurrErr)
+double GradThreshold(Matrix::matrix &vecCurrErr)
 {
     return vecCurrErr.sum_elem();
+}
+Matrix::matrix BoolSetPreErr(Matrix::matrix &vecCurrErr, Matrix::matrix &vecOutput)
+{
+    if(vecCurrErr.shape_examin(vecOutput))
+    {
+        Matrix::matrix vecPreErr(vecCurrErr.get_line(), vecCurrErr.get_column());
+        for(auto i=0; i<vecPreErr.get_line(); i++)
+            for(auto j=0; j<vecPreErr.get_column(); j++)
+                if(vecOutput[i][j]) vecPreErr[i][j] = vecCurrErr[i][j];
+        return vecPreErr;
+    }
+    else return Matrix::matrix();
 }
 /* Recycle Neural Network(RNN) definition
  * Step 1 - Recycle forward propagation
