@@ -527,14 +527,15 @@ double GradThreshold(Matrix::matrix &vecCurrErr)
 {
     return vecCurrErr.sum_elem();
 }
-Matrix::matrix BoolSetPreErr(Matrix::matrix &vecCurrErr, Matrix::matrix &vecOutput)
+Matrix::matrix BoolSetPreErr(Matrix::matrix &vecCurrErr, Matrix::matrix &vecInput, double dThreshold)
 {
-    if(vecCurrErr.shape_examin(vecOutput))
+    if(vecCurrErr.shape_examin(vecInput))
     {
         Matrix::matrix vecPreErr(vecCurrErr.get_line(), vecCurrErr.get_column());
         for(auto i=0; i<vecPreErr.get_line(); i++)
             for(auto j=0; j<vecPreErr.get_column(); j++)
-                if(vecOutput[i][j]) vecPreErr[i][j] = vecCurrErr[i][j];
+                if((vecCurrErr[i][j]>0&&vecInput[i][j]<dThreshold) || (vecCurrErr[i][j]<0&&vecInput[i][j]>dThreshold))
+                    vecPreErr[i][j] = dThreshold - vecCurrErr[i][j];
         return vecPreErr;
     }
     else return Matrix::matrix();
