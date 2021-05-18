@@ -574,6 +574,40 @@ algo_queue<algo_queue<Matrix::matrix>> DeconvKernelGrad(algo_queue<algo_queue<Ma
     }
     return batGradKernel;
 }
+algo_queue<Matrix::matrix> ImgGray(algo_queue<algo_queue<Matrix::matrix>> &batInput)
+{
+    algo_queue<Matrix::matrix> batGrayImg(batInput.size());
+    for(auto i=0; i<batInput.size(); i++) batGrayImg[i] = neunet::ImgGray(batInput[i]);
+    return batGrayImg;
+}
+algo_queue<algo_queue<Matrix::matrix>> PreImgGrayErr(algo_queue<Matrix::matrix> batCurrErr)
+{
+    algo_queue<algo_queue<Matrix::matrix>> batPreErr(batCurrErr.size());
+    for(auto i=0; i<batCurrErr.size(); i++) batPreErr[i] = neunet::PreImgGrayErr(batCurrErr[i]);
+    return batPreErr;
+}
+algo_queue<Matrix::matrix> BoolSet(algo_queue<Matrix::matrix> &batInput, double dThreshold)
+{
+    algo_queue<Matrix::matrix> batBoolSet(batInput.size());
+    for(auto i=0; i<batInput.size(); i++) batBoolSet[i] = neunet::BoolSet(batInput[i], dThreshold);
+    return batBoolSet;
+}
+double GradBoolSetThreshold(algo_queue<Matrix::matrix> &batCurrErr)
+{
+    double dSum = 0;
+    for(auto i=0; i<batCurrErr.size(); i++) dSum += neunet::GradBoolSetThreshold(batCurrErr[i]);
+    return dSum;
+}
+algo_queue<Matrix::matrix> BoolSetPreErr(algo_queue<Matrix::matrix> &batCurrErr, algo_queue<Matrix::matrix> &batInput, double dThreshold)
+{
+    if(batCurrErr.size() == batInput.size())
+    {
+        algo_queue<Matrix::matrix> batBoolSetPreErr(batCurrErr.size());
+        for(auto i=0; i<batCurrErr.size(); i++) batBoolSetPreErr[i] = neunet::BoolSetPreErr(batCurrErr[i], batInput[i], dThreshold);
+        return batBoolSetPreErr;
+    }
+    else return algo_queue<Matrix::matrix>();
+}
 
 // namespace end
 BATNET_END
