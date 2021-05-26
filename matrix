@@ -1301,23 +1301,23 @@ public:
         vec_opt.padding(ln_cnt, col_cnt, ln_dist, col_dist);
         return vec_opt;
     }
-    void crop(uint64_t t_cnt, uint64_t r_cnt, uint64_t b_cnt, uint64_t l_cnt)
+    void crop(uint64_t t_cnt, uint64_t r_cnt, uint64_t b_cnt, uint64_t l_cnt, uint64_t ln_dist = 0, uint64_t col_dist = 0)
     {
-        auto ln = line - t_cnt - b_cnt,
-            col = column - l_cnt - r_cnt;
-        auto elem_sum = ln * col;
-        auto nov_mat = init_matrix(elem_sum);
-        for(auto i=0; i<ln; i++)
-            for(auto j=0; j<col; j++) nov_mat[get_elem_pos(i, j, ln, col)] = matrix_value[get_elem_pos(i+t_cnt, j+l_cnt, line, column)];
+        auto ptr_vec = copy_matrix(matrix_value, elem_cnt);
+        auto ln_cnt = line, col_cnt = column;
+        line = (line - (t_cnt + b_cnt ) + ln_dist) / (ln_dist + 1);
+        column = (column - (r_cnt + l_cnt ) + col_dist) / (col_dist + 1);
         delete_matrix(matrix_value);
-        elem_st(ln, col);
-        matrix_value = copy_matrix(nov_mat, elem_sum);
-        delete_matrix(nov_mat);
+        mat_ptr_init(line, column);
+        for(auto i=0; i<line; i++)
+            for(auto j=0; j<column; j++)
+                matrix_value[get_elem_pos(i, j, line, column)] = ptr_vec[get_elem_pos(t_cnt+i*(ln_dist+1), l_cnt+j*(col_dist+1), ln_cnt, col_cnt)];
+        delete_matrix(ptr_vec);
     }
-    static matrix crop(matrix &src, uint64_t t_cnt, uint64_t r_cnt, uint64_t b_cnt, uint64_t l_cnt)
+    static matrix crop(matrix &src, uint64_t t_cnt, uint64_t r_cnt, uint64_t b_cnt, uint64_t l_cnt, uint64_t ln_dist = 0, uint64_t col_dist = 0)
     {
         auto vec_opt = src;
-        vec_opt.crop(t_cnt, r_cnt, b_cnt, l_cnt);
+        vec_opt.crop(t_cnt, r_cnt, b_cnt, l_cnt, ln_dist, col_dist);
         return vec_opt;
     }
     // Operator Overload

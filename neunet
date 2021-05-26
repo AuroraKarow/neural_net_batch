@@ -276,15 +276,14 @@ algo_queue<Matrix::matrix> PoolForwProp(algo_queue<Matrix::matrix> &mapInput, ui
  */
 Matrix::matrix CNNFCNIO(algo_queue<Matrix::matrix> &mapAtomOutput)
 {
-    auto nDimCnt = mapAtomOutput.size();
+    auto nLnCnt = mapAtomOutput[0].get_line(),
+        nColCnt = mapAtomOutput[0].get_column();
+    auto nDimCnt = mapAtomOutput.size() * nLnCnt * nColCnt;
+    auto nCnt = 0;
     Matrix::matrix vecFCNInput(nDimCnt, 1);
-    for(auto i=0; i<nDimCnt; i++)
-        if(mapAtomOutput[i].is_atom()) vecFCNInput[i][0] = mapAtomOutput[i].get_atom_vec();
-        else
-        {
-            vecFCNInput.destroy();
-            return Matrix::matrix();
-        }
+    for(auto i=0; i<mapAtomOutput.size(); i++)
+        for(auto j=0; j<nLnCnt; j++)
+            for(auto k=0; k<nColCnt; k++) vecFCNInput[nCnt++][0] = mapAtomOutput[i][j][k];
     return vecFCNInput;
 }
 /* For Fully connected network I/O operation
@@ -293,11 +292,22 @@ Matrix::matrix CNNFCNIO(algo_queue<Matrix::matrix> &mapAtomOutput)
  * - Return
  * Errors sequence transmitted back from fully connected network layer
  */
-algo_queue<Matrix::matrix>CNNFCNIO(Matrix::matrix &vecBackErr)
+algo_queue<Matrix::matrix>CNNFCNIO(Matrix::matrix &vecBackErr, uint64_t nChannCnt, uint64_t nLnCnt, uint64_t nColCnt)
 {
-    algo_queue<Matrix::matrix> mapBackErrSeq(vecBackErr.get_line());
-    for(auto i=0; i<vecBackErr.get_line(); i++) mapBackErrSeq[i] = Matrix::matrix(vecBackErr[i][0]);
-    return mapBackErrSeq;
+    auto nCnt = 0;
+    if(nChannCnt*nLnCnt*nColCnt == vecBackErr.get_line())
+    {
+        algo_queue<Matrix::matrix> mapBackErrSeq(nChannCnt);
+        for(auto i=0; i<nChannCnt; i++)
+        {
+             Matrix::matrix vecTemp(nLnCnt, nColCnt);
+            for(auto j=0; j<nLnCnt; j++)
+                for(auto k=0; k<nColCnt; k++) vecTemp[j][k] = vecBackErr[nCnt ++][0];
+            mapBackErrSeq[i] = vecTemp;
+        }
+        return mapBackErrSeq;
+    }
+    else return algo_queue<Matrix::matrix>();
 }
 Matrix::matrix GaussConnForwProp(Matrix::matrix &vecInput, Matrix::matrix &vecGaussLayerWeight)
 {

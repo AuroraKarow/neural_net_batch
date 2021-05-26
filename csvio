@@ -6,6 +6,7 @@
  * ~ God bless no bug ~
  */
 #include <fstream>
+#include <sstream>
 #define CSVIO_BEGIN namespace csvio { 
 #define CSVIO_END }
 

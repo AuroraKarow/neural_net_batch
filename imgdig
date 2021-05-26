@@ -102,7 +102,7 @@ ImgPx _get_image_bit_matrix(std::wstring directory_path_string)
 		{	
 			// Get image's single RGB
 			Gdiplus::Color color;
-			mapPtr->GetPixel(i, j, &color);
+			mapPtr->GetPixel(j, i, &color);
 			vecRed[i][j] = color.GetRed();
 			vecGreen[i][j] = color.GetGreen();
 			vecBlue[i][j] = color.GetBlue();

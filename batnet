@@ -8,7 +8,29 @@
 
 // namespace begin
 BATNET_BEGIN
-
+// Matrix operation
+algo_queue<algo_queue<Matrix::matrix>> BatPadding(algo_queue<algo_queue<Matrix::matrix>> batInput, uint64_t nLnCnt, uint64_t nColCnt, uint64_t nLnDist = 0, uint64_t nColDist = 0)
+{
+    auto nChannCnt = batInput[0].size();
+    algo_queue<algo_queue<Matrix::matrix>> batPadVec(batInput.size());
+    for(auto i=0; i<batInput.size(); i++)
+    {
+        batPadVec[i].init(nChannCnt);
+        for(auto j=0; j<nChannCnt; j++) batPadVec[i][j] = Matrix::matrix::padding(batInput[i][j], nLnCnt, nColCnt, nLnDist, nColDist);
+    }
+    return batPadVec;
+}
+algo_queue<algo_queue<Matrix::matrix>> BatCrop(algo_queue<algo_queue<Matrix::matrix>> batInput, uint64_t nTopCnt, uint64_t nRightCnt, uint64_t nBottomCnt, uint64_t nLeftCnt, uint64_t nLnDist = 0, uint64_t nColDist = 0)
+{
+    auto nChannCnt = batInput[0].size();
+    algo_queue<algo_queue<Matrix::matrix>> batCropVec(batInput.size());
+    for(auto i=0; i<batInput.size(); i++)
+    {
+        batCropVec[i].init(nChannCnt);
+        for(auto j=0; j<nChannCnt; j++) batCropVec[i][j] = Matrix::matrix::crop(batInput[i][j], nTopCnt, nRightCnt, nBottomCnt, nLeftCnt, nLnDist, nColDist);
+    }
+    return batCropVec;
+}
 // Fully connection network
 algo_queue<Matrix::matrix> ForwProp(algo_queue<Matrix::matrix> &batInput, Matrix::matrix &vecWeight)
 {
@@ -83,10 +105,10 @@ algo_queue<Matrix::matrix> CNNFCNIO(algo_queue<algo_queue<Matrix::matrix>> &batA
     for(auto i=0; i<batAtomOutput.size(); i++) batFCNInput[i] = neunet::CNNFCNIO(batAtomOutput[i]);
     return batFCNInput;
 }
-algo_queue<algo_queue<Matrix::matrix>> CNNFCNIO(algo_queue<Matrix::matrix> &batCurrErr)
+algo_queue<algo_queue<Matrix::matrix>> CNNFCNIO(algo_queue<Matrix::matrix> &batCurrErr, uint64_t nChannCnt, uint64_t nLnCnt, uint64_t nColCnt)
 {
     algo_queue<algo_queue<Matrix::matrix>> batCurrPreErr(batCurrErr.size());
-    for(auto i=0; i<batCurrErr.size(); i++) batCurrPreErr[i] = neunet::CNNFCNIO(batCurrErr[i]);
+    for(auto i=0; i<batCurrErr.size(); i++) batCurrPreErr[i] = neunet::CNNFCNIO(batCurrErr[i], nChannCnt, nLnCnt, nColCnt);
     return batCurrPreErr;
 }
 // Convolution
@@ -113,7 +135,7 @@ algo_queue<algo_queue<Matrix::matrix>> MergeChannel(algo_queue<algo_queue<algo_q
     }
     return MergedSigOutput;
 }
-algo_queue<algo_queue<Matrix::matrix>> ConvDerivativeErr(algo_queue<algo_queue<Matrix::matrix>> &batCurrErr, algo_queue<algo_queue<Matrix::matrix>> &batInput, Matrix::matrix(*funcActDv)(Matrix::matrix&))
+algo_queue<algo_queue<Matrix::matrix>> DerivativeErr(algo_queue<algo_queue<Matrix::matrix>> &batCurrErr, algo_queue<algo_queue<Matrix::matrix>> &batInput, Matrix::matrix(*funcActDv)(Matrix::matrix&))
 {
     algo_queue<algo_queue<Matrix::matrix>> batPreErr(batCurrErr.size());
     for(auto i=0; i<batCurrErr.size(); i++)
@@ -357,6 +379,41 @@ double BNShiftGrad(algo_queue<Matrix::matrix> &batCurrErr)
     for(auto i=0; i<batCurrErr.size(); i++) vecGradBeta += batCurrErr[i];
     return vecGradBeta.sum_elem();
 }
+algo_queue<Matrix::matrix> BatchNormalization(algo_queue<Matrix::matrix> &batInput, double dBeta, double dGamma, double dEpsilon = 1e-10)
+{
+    auto nBatchSize = batInput.size();
+    auto nLnCnt = batInput[0].get_line(),
+        nColCnt = batInput[0].get_column();
+    Matrix::matrix vecNormAvg(nLnCnt, nColCnt);
+    for(auto i=0; i<nBatchSize; i++) vecNormAvg += batInput[i];
+    vecNormAvg.elem_division(nBatchSize);
+    // Variance
+    Matrix::matrix vecNormVar(nLnCnt, nColCnt);
+    for(auto i=0; i<nBatchSize; i++)
+    {
+        auto vecDist = batInput[i] - vecNormAvg;
+        vecDist.elem_power(2);
+        vecNormVar += vecDist;
+    }
+    vecNormVar.elem_division(nBatchSize - 1);
+    Matrix::matrix vecScale(nLnCnt, nColCnt);
+    Matrix::matrix vecShift(nLnCnt, nColCnt);
+    for(auto i=0; i<nLnCnt; i++)
+        for(auto j=0; j<nColCnt; j++)
+        {
+            auto vecDivisor = vecNormVar[i][j];
+            if(vecDivisor == 0) vecDivisor += dEpsilon;
+            vecScale[i][j] = dGamma / vecDivisor;
+            vecShift[i][j] = vecNormAvg[i][j] * dGamma / vecDivisor;
+        }
+    vecShift -= dBeta;
+    algo_queue<Matrix::matrix> batNormOutput(nBatchSize);
+    for(auto i=0; i<nBatchSize; i++)
+    {
+        batNormOutput[i] = Matrix::matrix::elem_mult(vecScale, batInput[i]) - vecShift;
+    }
+    return batNormOutput;
+}
 struct CNNBN
 {
     algo_queue<Matrix::matrix> batMiuBeta;
@@ -432,6 +489,60 @@ CNNBN ConvBatchNormalizationForwProp(algo_queue<algo_queue<Matrix::matrix>> &bat
         }
     }
     return BNOutput;
+}
+algo_queue<algo_queue<Matrix::matrix>> ConvBatchNormalization(algo_queue<algo_queue<Matrix::matrix>> &batInput,  algo_queue<double> &batBeta, algo_queue<double> &batGamma, double dEpsilon = 1e-5)
+{
+    auto nBatchSize = batInput.size(),
+        nChannCnt = batBeta.size();
+    auto nLnCnt = batInput[0][0].get_line(),
+        nColCnt = batInput[0][0].get_column();
+    algo_queue<Matrix::matrix> vecAvg(nChannCnt);
+    for(auto i=0; i<nChannCnt; i++)
+    {
+        Matrix::matrix vecNormAvg(nLnCnt, nColCnt);
+        for(auto j=0; j<nBatchSize; j++) vecNormAvg += batInput[j][i];
+        vecNormAvg.elem_division(nBatchSize);
+        vecAvg[i] = vecNormAvg;
+    }
+    algo_queue<Matrix::matrix> vecVar(nChannCnt);
+    for(auto i=0; i<nChannCnt; i++)
+    {
+        Matrix::matrix vecNormVar(nLnCnt, nColCnt);
+        for(auto j=0; j<nBatchSize; j++)
+        {
+            auto vecDist = batInput[j][i] - vecAvg[i];
+            vecDist.elem_power(2);
+            vecNormVar += vecDist;
+        }
+        vecNormVar.elem_division(nBatchSize - 1);
+        vecVar[i] = vecNormVar;
+    }
+    algo_queue<Matrix::matrix> vecScale(nChannCnt);
+    algo_queue<Matrix::matrix> vecShift(nChannCnt);
+    for(auto i=0; i<nChannCnt; i++)
+    {
+        Matrix::matrix vecSglScale(nLnCnt, nColCnt);
+        Matrix::matrix vecSglShift(nLnCnt, nColCnt);
+        for(auto j=0; j<nLnCnt; j++)
+            for(auto k=0; k<nColCnt; k++)
+            {
+                auto vecDivisor = vecVar[i][j][k];
+                if(vecDivisor == 0) vecDivisor += dEpsilon;
+                vecSglScale[i][j] = batGamma[i] / vecDivisor;
+                vecSglShift[i][j] = vecAvg[i][j][k] * batGamma[i] / vecDivisor;
+            }
+        vecSglShift -= batBeta[i];
+        vecScale[i] = vecSglScale;
+        vecShift[i] = vecSglShift;
+    }
+    algo_queue<algo_queue<Matrix::matrix>> batOutput(nBatchSize);
+    for(auto i=0; i<nBatchSize; i++) batOutput[i].init(nChannCnt);
+    for(auto i=0; i<nChannCnt; i++)
+        for(auto j=0; j<nBatchSize; j++)
+        {
+            batOutput[j][i] = Matrix::matrix::elem_mult(vecScale[i], batInput[j][i]) - vecShift[i];
+        }
+    return batOutput;
 }
 algo_queue<algo_queue<Matrix::matrix>> ConvBatchNormalizationPreErr(CNNBN &batOutput, algo_queue<algo_queue<Matrix::matrix>> &batInput, algo_queue<algo_queue<Matrix::matrix>> &batCurrErr, algo_queue<double> &batGamma, double dEpsilon = 1e-10)
 {
@@ -543,7 +654,7 @@ algo_queue<double> ConvBNShiftGrad(algo_queue<algo_queue<Matrix::matrix>> &batCu
     }
     return batGradBeta;
 }
-void UpdateScaleShift(algo_queue<double> &batPreScaleShift, algo_queue<double> &batGradScaleShift, double dLearnRate)
+void UpdateScaleShift(algo_queue<double> &batPreScaleShift, algo_queue<double> &batGradScaleShift, double dLearnRate = 1e-5)
 {
     for(auto i=0; i<batPreScaleShift.size(); i++) batPreScaleShift[i] -= batPreScaleShift[i] * dLearnRate;
 }
