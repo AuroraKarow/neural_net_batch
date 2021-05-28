@@ -120,14 +120,14 @@ algo_queue<algo_queue<algo_queue<Matrix::matrix>>> ConvForwProp(algo_queue<algo_
     {
         // Kernel count
         batSigOutput[i].init(vecKernel.size());
-        for(auto j=0; j<vecKernel.size(); j++)
-            batSigOutput[i][j] = neunet::ConvForwProp(batInput[i], vecKernel[j], nStride);
+        for(auto j=0; j<vecKernel.size(); j++) batSigOutput[i][j] = neunet::ConvForwProp(batInput[i], vecKernel[j], nStride);
     }
     return batSigOutput;
 }
 algo_queue<algo_queue<Matrix::matrix>> MergeChannel(algo_queue<algo_queue<algo_queue<Matrix::matrix>>> &batSigOutput)
 {
     algo_queue<algo_queue<Matrix::matrix>> MergedSigOutput(batSigOutput.size());
+    
     for(auto i=0; i<batSigOutput.size(); i++)
     {   
         MergedSigOutput[i].init(batSigOutput[i].size());
@@ -226,20 +226,20 @@ bool UpdateKernel(algo_queue<algo_queue<Matrix::matrix>> &batPreKernel, algo_que
     else return false;
 }
 // Pooling
-algo_queue<algo_queue<Matrix::matrix>> PoolForwProp(algo_queue<algo_queue<Matrix::matrix>> &batInput, uint64_t nFilterLnCnt, uint64_t nFilterColCnt, bool bAvgPool = true)
+algo_queue<algo_queue<Matrix::matrix>> PoolForwProp(algo_queue<algo_queue<Matrix::matrix>> &batInput, uint64_t nFilterLnCnt, uint64_t nFilterColCnt, bool bAvgPool = true, uint64_t nLnStride = 0, uint64_t nColStride = 0)
 {
     algo_queue<algo_queue<Matrix::matrix>> batPoolOutput(batInput.size());
     for(auto i=0; i<batInput.size(); i++)
-        batPoolOutput[i] = neunet::PoolForwProp(batInput[i], nFilterLnCnt, nFilterColCnt, bAvgPool);
+        batPoolOutput[i] = neunet::PoolForwProp(batInput[i], nFilterLnCnt, nFilterColCnt, bAvgPool, nLnStride, nColStride);
     return batPoolOutput;
 }
-algo_queue<algo_queue<Matrix::matrix>> PoolPreErr(algo_queue<algo_queue<Matrix::matrix>> &batCurrErr, algo_queue<algo_queue<Matrix::matrix>> &batInput, uint64_t nFilterLnCnt, uint64_t nFilterColCnt, bool bAvgPool = true)
+algo_queue<algo_queue<Matrix::matrix>> PoolPreErr(algo_queue<algo_queue<Matrix::matrix>> &batCurrErr, algo_queue<algo_queue<Matrix::matrix>> &batInput, uint64_t nFilterLnCnt, uint64_t nFilterColCnt, bool bAvgPool = true, uint64_t nLnStride = 0, uint64_t nColStride = 0)
 {
     algo_queue<algo_queue<Matrix::matrix>> batPoolPreErr;
     if(batCurrErr.size() == batInput.size())
     {
         batPoolPreErr.init(batCurrErr.size());
-        for(auto i=0; i<batCurrErr.size(); i++) batPoolPreErr[i] = neunet::PoolBackProp(batCurrErr[i], batInput[i], nFilterLnCnt, nFilterColCnt, bAvgPool);
+        for(auto i=0; i<batCurrErr.size(); i++) batPoolPreErr[i] = neunet::PoolBackProp(batCurrErr[i], batInput[i], nFilterLnCnt, nFilterColCnt, bAvgPool, nLnStride, nColStride);
         return batPoolPreErr;
     }
     return batPoolPreErr;

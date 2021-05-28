@@ -241,30 +241,31 @@ algo_queue<Matrix::matrix> ConvForwProp(algo_queue<Matrix::matrix> &vecInput, al
  * - Return
  * Pooling vector
  */
-Matrix::matrix PoolForwProp(Matrix::matrix &vecInput, uint64_t nFilterLnCnt, uint64_t nFilterColCnt, bool bAvgPool = true)
+Matrix::matrix PoolForwProp(Matrix::matrix &vecInput, uint64_t nFilterLnCnt, uint64_t nFilterColCnt, bool bAvgPool = true, uint64_t nLnStride = 0, uint64_t nColStride = 0)
 {
-    if (vecInput.get_line() % nFilterLnCnt == 0 && vecInput.get_column() % nFilterColCnt == 0)
+    if(nLnStride == nColStride && nColStride == 0)
     {
-        auto vecConvInput = GetConvVec(vecInput, nFilterLnCnt, nFilterColCnt, nFilterLnCnt, nFilterColCnt);
-        Matrix::matrix vecPoolConv(vecConvInput.first.get_line(), 1);
-        for (auto i = 0; i < vecConvInput.first.get_line(); i++)
-        {
-            double dPoolVar = 0;
-            uint64_t nLoc = 0;
-            if(bAvgPool) dPoolVar = vecConvInput.first.get_avg_value(i, false);
-            else dPoolVar = vecConvInput.first.get_max_value(i, nLoc, false);
-            vecPoolConv[i][0] = dPoolVar;
-        }
-        auto vecConvOutputOrigin = GetConvOutputOriginVec(vecPoolConv, vecInput.get_line(), vecInput.get_column(), nFilterLnCnt, nFilterColCnt, nFilterLnCnt, nFilterColCnt);
-        return vecConvOutputOrigin;
+        nLnStride = nFilterLnCnt;
+        nColStride = nFilterColCnt;
     }
-    return Matrix::matrix();
+    auto vecConvInput = GetConvVec(vecInput, nFilterLnCnt, nFilterColCnt, nLnStride, nColStride);
+    Matrix::matrix vecPoolConv(vecConvInput.first.get_line(), 1);
+    for (auto i = 0; i < vecConvInput.first.get_line(); i++)
+    {
+        double dPoolVar = 0;
+        uint64_t nLoc = 0;
+        if(bAvgPool) dPoolVar = vecConvInput.first.get_avg_value(i, false);
+        else dPoolVar = vecConvInput.first.get_max_value(i, nLoc, false);
+        vecPoolConv[i][0] += dPoolVar;
+    }
+    auto vecConvOutputOrigin = GetConvOutputOriginVec(vecPoolConv, vecInput.get_line(), vecInput.get_column(), nFilterLnCnt, nFilterColCnt, nLnStride, nColStride);
+    return vecConvOutputOrigin;
 }
-algo_queue<Matrix::matrix> PoolForwProp(algo_queue<Matrix::matrix> &mapInput, uint64_t nFilterLnCnt, uint64_t nFilterColCnt, bool bAvgPool = true)
+algo_queue<Matrix::matrix> PoolForwProp(algo_queue<Matrix::matrix> &mapInput, uint64_t nFilterLnCnt, uint64_t nFilterColCnt, bool bAvgPool = true, uint64_t nLnStride = 0, uint64_t nColStride = 0)
 {
     algo_queue<Matrix::matrix> mapOutput(mapInput.size());
     for(auto i=0; i<mapInput.size(); i++)
-        mapOutput[i] = PoolForwProp(mapInput[i], nFilterLnCnt, nFilterColCnt, bAvgPool);
+        mapOutput[i] = PoolForwProp(mapInput[i], nFilterLnCnt, nFilterColCnt, bAvgPool, nLnStride, nColStride);
     return mapOutput;
 }
 /* - Overload
@@ -337,8 +338,13 @@ std::pair<Matrix::matrix, Matrix::matrix> GaussConnPreErr(Matrix::matrix &vecInp
  * - Return
  * Convoluted layer's error
  */
-Matrix::matrix PoolBackProp(Matrix::matrix &vecErr, Matrix::matrix &vecInput, uint64_t nFilterLnCnt, uint64_t nFilterColCnt, bool bIsAvgPool = true)
+Matrix::matrix PoolBackProp(Matrix::matrix &vecErr, Matrix::matrix &vecInput, uint64_t nFilterLnCnt, uint64_t nFilterColCnt, bool bIsAvgPool = true, uint64_t nLnStride = 0, uint64_t nColStride = 0)
 {
+    if(nLnStride==nColStride && nLnStride==0)
+    {
+        nLnStride = nFilterLnCnt;
+        nColStride = nFilterColCnt;
+    }
     Matrix::matrix vecPoolErr(vecInput.get_line(), vecInput.get_column());
     auto nFilterLnLoc = 0, nFilterColLoc = 0;
     auto vecConvErr = GetConvVec(vecErr);
@@ -353,7 +359,7 @@ Matrix::matrix PoolBackProp(Matrix::matrix &vecErr, Matrix::matrix &vecInput, ui
             // Fill the traced elemets on error vector according to the input vector and filter
             for (auto j = 0; j < nFilterLnCnt; j++)
                 for (auto k = 0; k < nFilterColCnt; k++)
-                    vecPoolErr[nFilterLnLoc + j][nFilterColLoc + k] = dAvg;
+                    vecPoolErr[nFilterLnLoc + j][nFilterColLoc + k] += dAvg;
         }
         // Max pooling
         else
@@ -368,23 +374,23 @@ Matrix::matrix PoolBackProp(Matrix::matrix &vecErr, Matrix::matrix &vecInput, ui
                         nMaxCol = nFilterColLoc + k;
                     }
             //Assign
-            vecPoolErr[nMaxLn][nMaxCol] = vecConvErr[i][0];
+            vecPoolErr[nMaxLn][nMaxCol] += vecConvErr[i][0];
         }
         // Next stride
-        nFilterColLoc += nFilterColCnt;
+        nFilterColLoc += nColStride;
         if (nFilterColLoc == vecInput.get_column())
         {
             nFilterColLoc = 0;
-            nFilterLnLoc += nFilterLnCnt;
+            nFilterLnLoc += nLnStride;
         }
     }
     return vecPoolErr;
 }
-algo_queue<Matrix::matrix> PoolBackProp(algo_queue<Matrix::matrix> &mapErr, algo_queue<Matrix::matrix> &mapInput, uint64_t nFilterLnCnt, uint64_t nFilterColCnt, bool bIsAvgPool = true)
+algo_queue<Matrix::matrix> PoolBackProp(algo_queue<Matrix::matrix> &mapErr, algo_queue<Matrix::matrix> &mapInput, uint64_t nFilterLnCnt, uint64_t nFilterColCnt, bool bIsAvgPool = true, uint64_t nLnStride = 0, uint64_t nColStride = 0)
 {
     algo_queue<Matrix::matrix> mapPreErr(mapErr.size());
     for(auto i=0; i<mapErr.size(); i++)
-        mapPreErr[i] = PoolBackProp(mapErr[i], mapInput[i], nFilterLnCnt, nFilterColCnt, bIsAvgPool);
+        mapPreErr[i] = PoolBackProp(mapErr[i], mapInput[i], nFilterLnCnt, nFilterColCnt, bIsAvgPool, nLnStride, nColStride);
     return mapPreErr;
 }
 Matrix::matrix ConvPreErr(Matrix::matrix &vecCurrErr, Matrix::matrix &vecKernel, uint64_t nStride)

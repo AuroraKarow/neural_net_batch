@@ -18,22 +18,22 @@ int main(int argc, char *argv[], char *envp[])
     auto i = 0;
     for(auto j=0; j<9; j++)
     {
-        auto imgTemp = GetImgBitMat("D:\\Users\\Aurora\\Documents\\Visual Studio Code Project\\IMAGE\\out\\0\\" + std::to_string(j) + ".bmp");
-        batInput[i++] = imgTemp.mapImgCh;
+        auto imgTemp = GetImgBitMat("C:/Users/Administrator/Desktop/IMAGE/out/0/" + std::to_string(j) + ".bmp");
+        batInput[i] = imgTemp.mapImgCh;
         batLbl[i++] = 0;
     }
     cout << "\rTrain Set Initialization ... 33%";
     for(auto j=0; j<10; j++)
     {
-        auto imgTemp = GetImgBitMat("D:\\Users\\Aurora\\Documents\\Visual Studio Code Project\\IMAGE\\out\\1\\" + std::to_string(j) + ".bmp");
-        batInput[i++] = imgTemp.mapImgCh;
+        auto imgTemp = GetImgBitMat("C:/Users/Administrator/Desktop/IMAGE/out/1/" + std::to_string(j) + ".bmp");
+        batInput[i] = imgTemp.mapImgCh;
         batLbl[i++] = 1;
     }
     cout << "\rTrain Set Initialization ... 67%";
     for(auto j=0; j<13; j++)
     {
-        auto imgTemp = GetImgBitMat("D:\\Users\\Aurora\\Documents\\Visual Studio Code Project\\IMAGE\\out\\2\\" + std::to_string(j) + ".bmp");
-        batInput[i++] = imgTemp.mapImgCh;
+        auto imgTemp = GetImgBitMat("C:/Users/Administrator/Desktop/IMAGE/out/2/" + std::to_string(j) + ".bmp");
+        batInput[i] = imgTemp.mapImgCh;
         batLbl[i++] = 2;
     }
     for(auto i=0; i<32; i++)
@@ -68,9 +68,9 @@ int main(int argc, char *argv[], char *envp[])
     auto gamma_conv_3 = InitScaleBatch(384), beta_conv_3 = InitShiftBatch(384);
     cout << "\rNeural Network Initialization ... 47%";
     // kernel_4
-    auto kernel_4 = InitKernel(384, 256, 3, 3);
+    auto kernel_4 = InitKernel(256, 384, 3, 3);
     // conv_BN_4
-    auto gamma_conv_4 = InitScaleBatch(384), beta_conv_4 = InitShiftBatch(384);
+    auto gamma_conv_4 = InitScaleBatch(256), beta_conv_4 = InitShiftBatch(256);
     cout << "\rNeural Network Initialization ... 58%";
     // weight_0
     auto weight_0 = InitWeight(9216, 4096);
@@ -115,24 +115,24 @@ int main(int argc, char *argv[], char *envp[])
         auto conv_act_0 = Activate(conv_bn_0.batNormOutput, ReLU);
         cout << "\rConvoluted Neural Network ... 17%";
         // pool_0
-        auto pool_0 = PoolForwProp(conv_act_0, 2, 2, false);
+        auto pool_0 = PoolForwProp(conv_act_0, 3, 3, false, 2, 2);
         // pad_0
         auto pad_0 = BatPadding(pool_0, 2, 2);
         cout << "\rConvoluted Neural Network ... 26%";
         // conv_1_sig
-        auto conv_sig_1 = ConvForwProp(pad_0, kernel_1, 2);
+        auto conv_sig_1 = ConvForwProp(pad_0, kernel_1, 1);     
         auto conv_sig_merge_1 = MergeChannel(conv_sig_1);
         cout << "\rConvoluted Neural Network ... 34%";
         // conv_1_bn
         auto conv_bn_1 = ConvBatchNormalizationForwProp(conv_sig_merge_1, beta_conv_1, gamma_conv_1);
         auto conv_act_1 = Activate(conv_bn_1.batNormOutput, ReLU);
         // pool_1
-        auto pool_1 = PoolForwProp(conv_act_1, 2, 2, false);
+        auto pool_1 = PoolForwProp(conv_act_1, 3, 3, false, 2, 2);
         // pad_1
         auto pad_1 = BatPadding(pool_1, 1, 1);
         cout << "\rConvoluted Neural Network ... 46%";
         // conv_2_sig
-        auto conv_sig_2 = ConvForwProp(pad_1, kernel_2, 2);
+        auto conv_sig_2 = ConvForwProp(pad_1, kernel_2, 1);
         auto conv_sig_merge_2 = MergeChannel(conv_sig_2);
         cout << "\rConvoluted Neural Network ... 58%";
         // conv_2_bn
@@ -159,7 +159,7 @@ int main(int argc, char *argv[], char *envp[])
         auto conv_bn_4 = ConvBatchNormalizationForwProp(conv_sig_merge_4, beta_conv_4, gamma_conv_4);
         auto conv_act_4 = Activate(conv_bn_4.batNormOutput, ReLU);
         // pool_2
-        auto pool_2 = PoolForwProp(conv_act_4, 2, 2, false);
+        auto pool_2 = PoolForwProp(conv_act_4, 3, 3, false, 2, 2);
         cout << "\rConvoluted Neural Network ... 100%" << endl;
         cout << "Completed." << endl;
         cout << "\rFully Connected Neural Network ... 0%";
@@ -311,7 +311,6 @@ int main(int argc, char *argv[], char *envp[])
             cout << "Completed." << endl;
             cout << endl;
         }
-        
     }
     return EXIT_SUCCESS;
 }
