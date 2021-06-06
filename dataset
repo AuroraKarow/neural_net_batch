@@ -1,4 +1,4 @@
-#include <fstream>
+#include "csvio"
 #include <string>
 
 #define DATASET_BEGIN namespace dataset {
@@ -6,6 +6,17 @@
 
 // Dataset namespace begin
 DATASET_BEGIN
+
+Matrix::matrix get_origin_vector(uint64_t lbl_no, uint64_t lbl_num)
+{
+    if(lbl_num)
+    {
+        Matrix::matrix origin(lbl_num, 1);
+        origin[lbl_no][0] = 1;
+        return origin;
+    }
+    else return Matrix::matrix();
+}
 
 // mnist
 
@@ -334,6 +345,77 @@ public:
     ~mnist_set()
     {
         clear();
+    }
+};
+
+// SUOD
+
+struct SUOD_lbl_stat
+{
+    std::string lbl_name = "";
+    uint64_t cnt = 0;
+};
+struct SUOD_data_stat
+{
+    std::string lbl_name = "";
+    algo_queue<algo_queue<double>> pt_cloud;
+};
+class SUOD_set
+{
+private:
+    algo_queue<SUOD_data_stat> pt_set;
+public:
+    // axis loaction
+    static const uint64_t X = 0;
+    static const uint64_t Y = 0;
+    static const uint64_t Z = 0;
+    // SUOD dimension space
+    static const uint64_t DIMENSION = 3;
+    uint64_t size()
+    {
+        return pt_set.size();
+    }
+    SUOD_set(){}
+    bool load_data(std::string &dir_root, algo_queue<SUOD_lbl_stat> &lbl_set)
+    {
+        pt_set.init(lbl_set.size());
+        for(auto i=0; i<lbl_set.size(); i++) for(auto j=0; j<lbl_set[i].cnt; j++)
+        {
+            auto raw_temp = csvio::input_table(dir_root + lbl_set[i].lbl_name + std::to_string(j));
+            if(raw_temp.size())
+            {
+                // read label
+                pt_set[i].lbl_name = lbl_set[i].lbl_name;
+                // read point cloud
+                pt_set[i].pt_cloud.init(raw_temp.size());
+                for(auto k=0; k<raw_temp.size(); k++) if(raw_temp[k].size())
+                {
+                    pt_set[i].pt_cloud[k].init(DIMENSION);
+                    pt_set[i].pt_cloud[k][X] = std::stof(raw_temp[k][3]);
+                    pt_set[i].pt_cloud[k][Y] = std::stof(raw_temp[k][4]);
+                    pt_set[i].pt_cloud[k][Z] = std::stof(raw_temp[k][5]);
+                }
+                else
+                {
+                    pt_set.clear();
+                    return false;
+                }
+                return true;
+            }
+            else
+            {
+                pt_set.clear();
+                return false;
+            }
+        }
+    }
+    SUOD_set(std::string &dir_root, algo_queue<SUOD_lbl_stat> &lbl_set)
+    {
+        if(!load_data(dir_root, lbl_set)) throw std::logic_error("Load data failed.");
+    }
+    SUOD_data_stat operator[](uint64_t idx)
+    {
+        return pt_set[idx];
     }
 };
 
