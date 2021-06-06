@@ -232,6 +232,9 @@ public:
     }
 };
 
+template<class K, class V> class algo_map
+{
+};
 // unique_ptr
 template<class _Ty> struct block_ptr
 {
