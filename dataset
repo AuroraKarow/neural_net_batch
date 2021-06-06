@@ -417,6 +417,19 @@ public:
     {
         return pt_set[idx];
     }
+    void clear()
+    {
+        for(auto i=0; i<pt_set.size(); i++)
+        {
+            pt_set[i].lbl_name.clear();
+            pt_set[i].pt_cloud.clear();
+        }
+        pt_set.clear();
+    }
+    ~SUOD_set()
+    {
+        clear();
+    }
 };
 
 //Dataset namespace end
