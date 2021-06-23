@@ -258,6 +258,8 @@ int main(int argc, char *argv[], char *envp[])
             UpdateScaleShift(gamma_conv_4, gamma_conv_4_grad);
             UpdateScaleShift(beta_conv_4, beta_conv_4_grad);
             auto conv_sig_4_err = ConvPreErr(conv_bn_4_err, kernel_4, 1);
+            auto kernel_4_grad = KernelGrad(pad_3, conv_bn_4_err);
+            UpdateKernel(kernel_4, kernel_4_grad, 0.01);
             cout << "\rConvoluted Neural Network Back Propagation ... 26%";
             // pad_3
             auto pad_3_err = BatCrop(conv_sig_4_err, 1, 1, 1, 1);

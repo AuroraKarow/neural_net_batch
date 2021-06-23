@@ -163,7 +163,7 @@ bool _save_image_bit(ImgPx imgSrc, std::string directory_path_string, uint64_t b
 			u_char rgb_b = imgSrc.mapImgCh[B][i-1][j];
 			u_char rgb_r = imgSrc.mapImgCh[R][i-1][j];
 			fwrite(&rgb_g, 1, 1, file);
-			fwrite(&rgb_b, 1, 1, file);
+			fwrite(&rgb_b, 1, 1, file);			
 			fwrite(&rgb_r, 1, 1, file);
 		}
     fclose(file);

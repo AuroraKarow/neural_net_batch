@@ -316,9 +316,7 @@ BN BatchNormalizationForwProp(algo_queue<Matrix::matrix> &batInput, double dBeta
     BNOutput.batScaleShift.init(nBatchSize);
     for(auto i=0; i<nBatchSize; i++)
     {
-        // (input - μΒ) / √(σ^2 + ε)
         BNOutput.batNormOutput[i] = (batInput[i] - BNOutput.vecMiuBeta).elem_division((DivisorZeroOpt(BNOutput.batSigmaSqr, dEpsilon)).elem_power(0.5));
-        // γ input + β
         BNOutput.batScaleShift[i] = BNOutput.batNormOutput[i] * dGamma + dBeta;
     }
     return BNOutput;
@@ -327,9 +325,7 @@ algo_queue<Matrix::matrix> BatchNormalizationPreErr(BN &batOutput, algo_queue<Ma
 {
     auto nBatchSize = batCurrErr.size();
     auto nLnCnt = batCurrErr[0].get_line(), nColCnt = batCurrErr[0].get_column();
-    // ∂L/∂ bar x
     for(auto i=0; i<nBatchSize; i++) batCurrErr[i] *= dGamma;
-    // ∂L/∂σ^2 = (∂L/∂ bar x)(∂ bar x/∂σ^2)
     Matrix::matrix vecGradSigmaSqr(nLnCnt, nColCnt);
     auto vecCpySigmaSqr = batOutput.batSigmaSqr;
     auto vecDiscDistribute = DivisorZeroOpt(batOutput.batSigmaSqr, dEpsilon);;
@@ -339,10 +335,8 @@ algo_queue<Matrix::matrix> BatchNormalizationPreErr(BN &batOutput, algo_queue<Ma
         auto vecDistance = Matrix::matrix::elem_mult(batCurrErr[i], (batInput[i]-batOutput.vecMiuBeta));
         vecGradSigmaSqr += Matrix::matrix::elem_mult(vecDistance, vecGradDiscDistribute);
     }
-    // ∂L/∂μΒ = (∂L/∂ bar x)(∂ bar x/∂μΒ)
     Matrix::matrix vecGradDistribute(nLnCnt, nColCnt);
     Matrix::matrix vecGradDistance(nLnCnt, nColCnt);
-    // -(σ^2 + ε)^(-0.5)
     auto vecDistribute = Matrix::matrix::elem_power(vecDiscDistribute, (-0.5));
     for(auto i=0; i<nBatchSize; i++)
     {
@@ -352,7 +346,6 @@ algo_queue<Matrix::matrix> BatchNormalizationPreErr(BN &batOutput, algo_queue<Ma
     vecGradDistance.elem_division(nBatchSize);
     vecGradDistance.elem_mult(vecGradSigmaSqr);
     auto vecGradMiuBeta = vecGradDistribute + vecGradDistance;
-    // ∂L/∂ input = (∂L/∂ bar x)(∂ bar x/input)
     algo_queue<Matrix::matrix> batPreErr(nBatchSize);
     auto vecNormDistance = Matrix::matrix::elem_division(vecGradMiuBeta, nBatchSize);
     for(auto i=0; i<nBatchSize; i++)
@@ -448,18 +441,14 @@ CNNBN ConvBatchNormalizationForwProp(algo_queue<algo_queue<Matrix::matrix>> &bat
     {
         Matrix::matrix vecChannMiuBeta(nLnCnt, nColCnt);
         Matrix::matrix vecChannSigmaSqr(nLnCnt, nColCnt);
-        // Σ input
         for(auto j=0; j<nBatchSize; j++) vecChannMiuBeta += batInput[j][i];
-        // Σ/m
         vecChannMiuBeta.elem_division(nBatchSize);
-        // Σ (input-avg)^2
         for(auto j=0; j<nBatchSize; j++)
         {
             auto vecDist = batInput[j][i] - vecChannMiuBeta;
             vecDist.elem_power(2);
             vecChannSigmaSqr += vecDist;
         }
-        // Σ^2/m
         vecChannSigmaSqr.elem_division(nBatchSize);
         BNOutput.batMiuBeta[i] = vecChannMiuBeta;
         BNOutput.batSigmaSqr[i] = vecChannSigmaSqr;
@@ -476,13 +465,9 @@ CNNBN ConvBatchNormalizationForwProp(algo_queue<algo_queue<Matrix::matrix>> &bat
     {
         for(auto j=0; j<nBatchSize; j++)
         {
-            // input - μΒ
             auto vecDist = batInput[j][i] - BNOutput.batMiuBeta[i];
-            // σ^2 + ε
             auto vecSigma = DivisorZeroOpt(BNOutput.batSigmaSqr[i], dEpsilon);
-            // √(σ^2 + ε)
             vecSigma.elem_power(0.5);
-            // (input - μΒ) / √(σ^2 + ε)
             vecDist.elem_division(vecSigma);
             BNOutput.batNormOutput[j][i] = vecDist;
             BNOutput.batScaleShift[j][i] = vecDist * batGamma[i] + batBeta[i];
@@ -550,45 +535,35 @@ algo_queue<algo_queue<Matrix::matrix>> ConvBatchNormalizationPreErr(CNNBN &batOu
         nBatchSize = batCurrErr.size();
     auto nLnCnt = batCurrErr[0][0].get_line(),
         nColCnt = batCurrErr[0][0].get_column();
-    // ∂L/∂ bar x
     // Batch
     for(auto i=0; i<batCurrErr.size(); i++)
         // Channel(dimension)
         for(auto j=0; j<batCurrErr[i].size(); j++) batCurrErr[i][j] *= batGamma[j];
-    // ∂L/∂σ^2
     algo_queue<Matrix::matrix> batGradSigmaSqr(nChannCnt);
     for(auto i=0; i<nChannCnt; i++)
     {
         Matrix::matrix vecGradSigmaSqr(nLnCnt, nColCnt);
-        // -((σ^2 + ε) ^ (-1.5)) / 2
         auto vecSigmaSqrFact = DivisorZeroOpt(batOutput.batSigmaSqr[i], dEpsilon);
         vecSigmaSqrFact.elem_power(-1.5);
         vecSigmaSqrFact *= (-0.5);
         for(auto j=0; j<nBatchSize; j++)
         {
-            // input - μΒ
             auto vecDist = batInput[j][i] - batOutput.batMiuBeta[i];
-            // (∂L/∂ bar x)(input - μΒ)
             auto vecMiuBetaFact = Matrix::matrix::elem_mult(batCurrErr[j][i], vecDist);
-            // (∂L/∂ bar x)(input - μΒ)(-((σ^2 + ε) ^ (-1.5)) / 2)
             vecGradSigmaSqr += Matrix::matrix::elem_mult(vecMiuBetaFact, vecSigmaSqrFact);
         }
         batGradSigmaSqr[i] = vecGradSigmaSqr;
     }
-    // ∂L/∂μΒ
     algo_queue<Matrix::matrix> batGradMiuBeta(nChannCnt);
     for(auto i=0; i<nChannCnt; i++)
     {
         // Variance gradient normalization
         Matrix::matrix vecHeadGrad(nLnCnt, nColCnt), vecTailGrad(nLnCnt, nColCnt);
-        // -√(σ^2 + ε)
         auto vecDistribute = DivisorZeroOpt(batOutput.batSigmaSqr[i], dEpsilon);
         vecDistribute.elem_power(0.5);
         vecDistribute *= -1;
-        // μ, σ^2 ~ N
         for(auto j=0; j<nBatchSize; j++)
         {
-            // -(∂L/∂ bar x)√(σ^2 + ε)
             vecHeadGrad += Matrix::matrix::elem_division(batCurrErr[j][i], vecDistribute);
             // distance
             auto vecDistance = batInput[j][i] - batOutput.batMiuBeta[i];
@@ -605,14 +580,11 @@ algo_queue<algo_queue<Matrix::matrix>> ConvBatchNormalizationPreErr(CNNBN &batOu
     for(auto i=0; i<nBatchSize; i++) batPreErr[i].init(nChannCnt);
     for(auto i=0; i<nChannCnt; i++)
     {
-        // √(σ^2 + ε)
         auto vecDistribute = DivisorZeroOpt(batOutput.batSigmaSqr[i], dEpsilon);
         vecDistribute.elem_power(0.5);
-        // interception - ∂L/∂μΒ
         auto vecInterception = Matrix::matrix::elem_division(batGradMiuBeta[i], nBatchSize);
         for(auto j=0; j<nBatchSize; j++)
         {
-            // (∂L/∂ bar x)(distribution)
             auto vecGradDistribute = Matrix::matrix::elem_division(batCurrErr[j][i], vecDistribute);
             // distance
             auto vecDistance = batInput[j][i] - batOutput.batMiuBeta[i];

@@ -6,7 +6,6 @@
 #include "funcact"
 #include "imgdig"
 #include "batnet"
-#include "csvio"
 #include "dataset"
 
 

@@ -1,0 +1,121 @@
+[函数名称]
+[描述]
+[参数]
+
+InitKernel
+初始化卷积核
+数量, 通道数, 卷积核行数, 卷积核列数
+
+InitScaleBatch
+初始化归一化比例
+通道数
+
+InitShiftBatch
+初始化归一化偏移
+通道数
+
+InitWeight
+初始化权重
+输入列向量行数, 输出列向量行数
+
+ConvForwProp
+卷积计算前向传播
+输入向量, 卷积核, 卷积步幅
+
+MergeChannel
+合并通道
+输入向量
+
+ConvBatchNormalizationForwProp
+卷积批归一化, 这将返回一个数据结构, 批归一化输出为字段batNormOutput
+输入向量, 归一化偏移向量, 归一化比例向量
+
+Active
+激活
+输入向量, 激活函数
+
+PoolForwProp
+池化计算前向传播
+输入, 过滤器行数, 过滤器列数, 平均池化(true)/最大池化(false), 行步幅, 列步幅
+
+BatPadding
+填充
+输入向量, 行元素外填充数, 列元素外填充数, 行元素间填充数, 列元素间填充数
+
+CNNFCNIO
+卷积向量转全连接向量, 拉直一个向量
+输入向量
+重载: 反向传播中, 将一个误差列向量展开成一个卷积向量
+回传误差向量, 通道数, 行数, 列数
+
+ForwProp
+前向传播
+输入向量, 权重向量
+
+BatchNormalizationForwProp
+批归一化, 这将返回一个数据结构, 批归一化输出为字段batNormOutput
+输入向量, 归一化偏移值, 归一化比例值
+
+GaussConnForwProp
+高斯连接, 使用sigmoid进行批归一化, 输出层前的最后一层
+输入向量, 高斯权重
+
+GaussConnPreErr
+高斯连接反向传播
+高斯连接输入, 高斯连接输出, 目标输出, 高斯权重, 学习率
+
+DerivativeErr
+激活导数
+回传误差向量, 输入向量, 激活函数导函数
+
+BatchNormalizationPreErr
+批归一化反向传播
+归一化输出数据结构, 归一化输入, 回传误差向量, 归一化比例值
+
+PreErr
+反向传播
+回传误差向量, 权重向量
+
+BNScaleGrad
+获取批归一化比例值的梯度
+回传误差向量, 归一化输出数据结构
+
+BNShiftGrad
+获取批归一化偏移值的梯度
+回传误差向量
+
+WeightGrad
+获取权重向量梯度
+回传误差向量, 输入向量
+
+PoolPreErr
+池化反向传播
+回传误差向量, 输入向量, 过滤器行数, 过滤器列数, 平均池化(true)/最大池化(false), 行步幅, 列步幅
+
+ConvBatchNormalizationPreErr
+卷积批归一化反向传播
+归一化输出数据结构, 输入向量, 回传误差向量, 归一化比例向量
+
+ConvBNScaleGrad
+获取卷积批归一化比例向量误差
+回传误差向量, 归一化输出数据结构
+
+ConvBNShiftGrad
+获取卷积批归一化偏移向量误差
+回传误差向量
+
+UpdateScaleShift
+更新卷积批归一化比例向量和偏移向量
+归一化比例向量或偏移向量, 归一化比例向量或偏移向量的梯度, 学习率
+
+ConvPreErr
+卷积反向传播
+回传误差, 卷积核, 步幅
+
+KernelGrad
+获取卷积核梯度
+输入向量, 回传误差向量
+
+UpdateKernel
+更新卷积核
+卷积核, 卷积核梯度, 学习率
