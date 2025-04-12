@@ -6,16 +6,16 @@
     "symbolsearchpath": "https://msdl.microsoft.com/download/symbols",
     "configurations": [
         {
-            "name": "(Windows) 启动",
+            "name": "cl.exe build and debug active file",
             "type": "cppvsdbg",
             "request": "launch",
-            "preLaunchTask": "shell: cl.exe build active file",
-            "program": "${workspaceFolder}/Debug/${fileBasenameNoExtension}.exe",
+            "program": "${workspaceFolder}\\${fileBasenameNoExtension}.exe",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/Debug",
+            "cwd": "${workspaceFolder}",
             "environment": [],
-            "console": "externalTerminal"
+            "console":"externalTerminal",
+            "preLaunchTask": "cl.exe build active file"
         }
     ]
 }

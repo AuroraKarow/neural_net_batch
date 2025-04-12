@@ -1,0 +1,21 @@
+Multi-thread BN alogorithm
+
+mutex [thmtxBN]
+condition variable [condBN]
+lock counter [cnt]
+thread index [i]
+input array [arr_in]
+output array [arr_out]
+input [xi]
+
+++ cnt
+arr_in[i] = xi
+if i
+    thmtxBN
+    while !size(arr_out)
+        thmtxBN = condBN
+else
+    thmtxBN
+    while size(arr_in) != cnt
+    arr_out = BN(arr_in)
+    condBN

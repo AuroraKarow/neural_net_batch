@@ -1,0 +1,22 @@
+#pragma once
+#include "netbaslib"
+
+#define ADA_BEGIN           namespace ada {
+#define ADA_END             }
+
+ADA_BEGIN
+
+template<typename _Ty> using ada_tensor     =   vect_t<_Ty>;
+template<typename _Ty> using ada_feature    =   set<_Ty>;
+
+ADA_END
+
+struct  BN_EXP_VAR          { vect vecExp, vecVar; };
+
+#include "ada.hpp"
+#include "fcbat.hpp"
+#include "convbat.hpp"
+
+#define BN_FC               fc::FCBN
+#define BN_CONV             conv::ConvBN
+#define BN_CONV_IM2COL      conv::ConvBNIm2Col

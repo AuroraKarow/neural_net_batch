@@ -1,0 +1,24 @@
+#pragma once
+#include "funclib"
+
+#define FC_BEGIN    namespace fc {
+#define FC_END      }
+
+#define CONV_BEGIN  namespace conv {
+#define CONV_END    }
+
+#define POOL_DOWN_AVG       0
+#define POOL_DOWN_MAX       1
+#define POOL_DOWN_GAG       2
+
+#define POOL_UP_AVG         0
+#define POOL_UP_MAX         1
+#define POOL_UP_GAG         2
+#define POOL_UP_FIL         3
+
+#define POOL_MAX_IM2COL     0
+#define POOL_AVG_IM2COL     1
+#define POOL_GAG_IM2COL     2
+
+#include "fc.hpp"
+#include "conv.hpp"

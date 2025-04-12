@@ -1,0 +1,119 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="源文件">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="头文件">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="资源文件">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="头文件\omp">
+      <UniqueIdentifier>{496940e2-23a8-47aa-94fe-8583aff72b5f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\iomp">
+      <UniqueIdentifier>{50e4020a-3f3e-4dc2-bca9-23587efa7c2c}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\ada.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\bagrt.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\bmio.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\conv.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\convbat.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\csvio.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\dataset.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\fc.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\fcbat.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\funclib.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\layer.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\matrix.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\neunet.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\bagrt">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\bmio">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\csvio">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\dataset">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\funclib">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\layer">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\matrix">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\netbaslib">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\netbatlib">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\neunet">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Iomp.h">
+      <Filter>头文件\omp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\async.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\main.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\imop.cpp">
+      <Filter>源文件\iomp</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\.gitignore">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="..\..\async">
+      <Filter>头文件</Filter>
+    </None>
+    <None Include="..\..\README.md">
+      <Filter>资源文件</Filter>
+    </None>
+  </ItemGroup>
+</Project>

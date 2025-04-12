@@ -1,0 +1,13 @@
+#pragma once
+#include <shared_mutex>
+#include <future>
+#include "bagrt"
+
+#define ASYNC_BEGIN     namespace async {
+#define ASYNC_END       }
+
+#define ASYNC_CORE_CNT  std::thread::hardware_concurrency()
+
+template<typename rT> using PACK_PTR    =   std::shared_ptr<std::packaged_task<rT()>>;
+
+#include "async.hpp"

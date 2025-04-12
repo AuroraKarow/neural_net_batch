@@ -1,0 +1,16 @@
+#pragma once
+#include "matrix"
+#include "funclib.hpp"
+
+#define SAMP_BLOCK_CNT      samp_block_cnt
+#define SAMP_TRACE_POS      samp_trace_pos
+#define SAMP_OUTPUT_DIR_CNT samp_output_dir_cnt
+#define SAMP_INPUT_DIR_CNT  samp_input_dir_cnt
+#define SAMP_VALID          samp_valid
+
+#define INSTANCE_DERIVE     std::dynamic_pointer_cast
+#define DIV_DOM             divisor_dominate
+
+#define EPOCH_TRAIN_STATUS  print_train_status
+#define EPOCH_DEDUCE_STATUS print_deduce_status
+#define EPOCH_DEDUCE_PROG   print_deduce_progress

@@ -5,22 +5,18 @@
     "tasks": [
         {
             "type": "shell",
-            "label": "shell: cl.exe build active file",
+            "label": "cl.exe build active file",
             "command": "cl.exe",
             "args": [
                 "/Zi",
                 "/EHsc",
-                "/Fd:",
-                "${fileDirname}\\Debug\\${fileBasenameNoExtension}.pdb",
-                "/Fo:",
-                "${fileDirname}\\Debug\\${fileBasenameNoExtension}.obj",
+                "/Qpar",
+                "/O2",
                 "/Fe:",
-                "${fileDirname}\\Debug\\${fileBasenameNoExtension}.exe",
+                "${fileDirname}\\${fileBasenameNoExtension}.exe",
                 "${file}"
             ],
-            "problemMatcher": [
-                "$msCompile"
-            ],
+            "problemMatcher": ["$msCompile"],
             "group": {
                 "kind": "build",
                 "isDefault": true

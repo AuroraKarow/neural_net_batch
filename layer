@@ -1,0 +1,36 @@
+#pragma once
+#include "netbatlib"
+#include "async"
+
+#define LAYER_BEGIN         namespace layer {
+#define LAYER_END           }
+
+#define _CONV               conv::
+#define _FC                 fc::
+#define _ADA                ada::
+
+// NULL = no activation function
+#define SIGMOID             1
+#define RELU                2
+#define SOFTMAX             3
+
+#define POOL_AVG            0
+#define POOL_MAX            1
+#define POOL_GAG            2
+
+#define ACT                 0
+#define ACT_VT              1
+#define ACT_FT              2
+#define FC                  3
+#define CONV                4
+#define POOL                5
+#define FC_BN               6
+#define CONV_BN             7
+#define TRANS               8
+#define CONV_IM2COL         9
+#define CONV_BN_IM2COL      10
+#define POOL_IM2COL         11
+#define TRANS_IM2COL        12
+#define PAD_CROP_IM2COL     13
+
+#include "layer.hpp"

@@ -1,0 +1,62 @@
+#pragma once
+#pragma comment(lib, "gdiplus.lib")
+
+#include <comdef.h>
+#include <gdiplus.h>
+#include "matrix"
+
+#define BMIO_BEGIN          namespace bmio{
+#define BMIO_END            }
+
+#define BMIO_CHANN          mtx::matrix
+#define BMIO_RAW            bagrt::net_queue<BMIO_CHANN>
+#define GDI_TOKEN           ULONG_PTR
+#define BMIO_STR            std::string
+#define BMIO_WSTR           std::wstring
+
+#define BMIO_CHARSET        bagrt::charset_exchange
+
+#define GDI_STARTUP         Gdiplus::GdiplusStartup
+#define GDI_SHUTDOWN        Gdiplus::GdiplusShutdown
+
+#define GDI_STARTUP_INPUT   Gdiplus::GdiplusStartupInput
+#define GDI_BITMAP          Gdiplus::Bitmap
+#define GDI_GRAPHICS        Gdiplus::Graphics
+#define GDI_PEN             Gdiplus::Pen
+#define GDI_COLOR           Gdiplus::Color
+#define GDI_STATUS          Gdiplus::Status
+
+#define BMIO_R              0
+#define BMIO_G              1
+#define BMIO_B              2
+#define BMIO_A              4
+
+#define BMIO_PNG            0
+#define BMIO_JPG            1
+#define BMIO_BMP            2
+#define BMIO_GIF            3
+#define BMIO_TIF            4
+
+#define BMIO_GRAY_WEIGHT_R  0.299
+#define BMIO_GRAY_WEIGHT_G  0.587
+#define BMIO_GRAY_WEIGHT_B  0.114
+#define BMIO_GRAY_WEIGHT_A  0
+
+#define BMIO_RGB_CNT        3
+#define BMIO_RGBA_CNT       4
+
+BMIO_BEGIN
+
+struct px
+{
+    u_char b = 0;
+    u_char g = 0;
+    u_char r = 0;
+    u_char a = 0;
+};
+
+BMIO_END
+
+#define BMIO_PX             bmio::px
+
+#include "bmio.hpp"
